@@ -1,0 +1,45 @@
+@import "tailwindcss";
+@import "lenis/dist/lenis.css";
+
+/* Design tokens — эх сурвалж нь энд. Tailwind v4-д @theme нь config-ийн үүрэг гүйцэтгэнэ:
+   --color-plum-950 → bg-plum-950, text-plum-950 гэх мэт utility үүсгэнэ. */
+@theme {
+  --color-plum-950: #1e0f1a;
+  --color-plum-800: #3a1c30;
+  --color-blush-300: #e8b4bc;
+  --color-blush-100: #f6dde0;
+  --color-ivory: #f8f3ec;
+  --color-gold-soft: #c9a87c;
+
+  --font-display: var(--font-cormorant), "Times New Roman", serif;
+  --font-sans: var(--font-manrope), system-ui, sans-serif;
+
+  --ease-bloom: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root {
+  --header-height: 5rem;
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-plum-950);
+  color: var(--color-ivory);
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background: var(--color-blush-300);
+  color: var(--color-plum-950);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
