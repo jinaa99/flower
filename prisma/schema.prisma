@@ -1,0 +1,133 @@
+// Каталог, нөөц, захиалга. Seed: `prisma/seed.ts` (`data/flowers.ts`, `lib/delivery.ts`-ээс).
+// Зураг (`data/flowerImages.ts`), 3D spec, journey нь кодонд үлдэнэ — slug-аар холбогдоно.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Flower {
+  /// `data/flowers.ts`-ийн `flowerSlugs` — URL, зураг, 3D spec-ийн түлхүүр
+  slug           String    @id
+  nameMn         String
+  nameEn         String
+  latinName      String
+  category       String
+  /// FlowerColor[] — custom баглааны өнгөний индекс энэ дараалалд тулгуурлана
+  colors         Json
+  origin         String
+  meaning        String
+  occasions      String[]
+  /// Flower["care"]: waterChangeDays, vaseLifeDays, tips
+  care           Json
+  /// Агуулахад байгаа иш — энгийн баглаа ч, custom баглаа ч эндээс хасна
+  stock          Int
+  deliveryNote   String
+  /// 0–100, каталогийн «Эрэлттэй» эрэмбэ
+  popularity     Int
+  addedAt        DateTime  @db.Date
+  relatedSlugs   String[]
+  pairsWithSlugs String[]
+  sortOrder      Int
+  updatedAt      DateTime  @updatedAt
+  variants       Variant[]
+}
+
+/// Баглааны хэмжээ: Жижиг / Дунд / Том
+model Variant {
+  id         String      @id @default(cuid())
+  flowerSlug String
+  flower     Flower      @relation(fields: [flowerSlug], references: [slug], onDelete: Cascade)
+  size       String
+  stems      Int
+  price      Int
+  sortOrder  Int
+  orderItems OrderItem[]
+
+  @@unique([flowerSlug, size])
+}
+
+/// Өдөр бүр давтагдах хүргэлтийн цагийн завсар
+model DeliverySlot {
+  /// «10-13»
+  id        String  @id
+  label     String
+  startHour Int
+  endHour   Int
+  /// Нэг өдөрт энэ завсарт хүлээн авах захиалгын дээд тоо
+  capacity  Int
+  active    Boolean @default(true)
+  sortOrder Int
+  orders    Order[]
+}
+
+enum OrderStatus {
+  NEW
+  PREPARING
+  OUT_FOR_DELIVERY
+  DELIVERED
+}
+
+enum PaymentMethod {
+  qpay
+  transfer
+}
+
+enum OrderItemKind {
+  FLOWER
+  BOUQUET
+}
+
+model Order {
+  id             String        @id @default(uuid())
+  /// Хүнд харагдах дугаар: FL-261019-4821
+  number         String        @unique
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  status         OrderStatus   @default(NEW)
+  payment        PaymentMethod
+  paidAt         DateTime?
+  subtotal       Int
+  deliveryFee    Int
+  total          Int
+  deliveryDate   DateTime      @db.Date
+  slotId         String
+  slot           DeliverySlot  @relation(fields: [slotId], references: [id])
+  district       String
+  khoroo         Int
+  address        String
+  recipientName  String
+  recipientPhone String
+  senderName     String
+  senderPhone    String
+  anonymous      Boolean
+  cardMessage    String
+  items          OrderItem[]
+
+  @@index([deliveryDate, slotId])
+  @@index([status, createdAt])
+}
+
+model OrderItem {
+  id        String        @id @default(cuid())
+  orderId   String
+  order     Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  position  Int
+  kind      OrderItemKind
+  /// FLOWER: худалдсан хэмжээ (каталогоос хасагдвал null болно — snapshot талбарууд үлдэнэ)
+  variantId String?
+  variant   Variant?      @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  /// BOUQUET: BouquetConfig (иш, ногоон, цаас, тууз, карт)
+  bouquet   Json?
+  /// Захиалах үеийн snapshot
+  title     String
+  detail    String
+  unitPrice Int
+  quantity  Int
+
+  @@index([orderId])
+}

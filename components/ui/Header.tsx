@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSyncExternalStore } from "react";
-import { selectCartCount, useCart } from "@/lib/store";
+import { Suspense } from "react";
+import { selectCartCount, useCart, useUI } from "@/lib/store";
+import { useHydrated } from "@/lib/useHydrated";
 import { cn } from "@/lib/utils";
 
 const nav = [
@@ -11,17 +12,28 @@ const nav = [
   { href: "/bouquet-builder", label: "Баглаа бүрдүүлэх" },
 ] as const;
 
-const noopSubscribe = () => () => {};
-
+/**
+ * `usePathname` нь урьдчилан мэдэгдэхгүй param-тай route (/order/[id])-д suspend болдог
+ * (cacheComponents) — тэр үед идэвхтэй линкгүй ижил header prerender-д орно.
+ */
 export function Header() {
-  const pathname = usePathname();
-  const count = useCart(selectCartCount);
-  // persist нь localStorage-аас уншдаг тул hydration зөрөхөөс сэргийлж hydrate болсны дараа харуулна
-  const mounted = useSyncExternalStore(
-    noopSubscribe,
-    () => true,
-    () => false,
+  return (
+    <Suspense fallback={<HeaderView pathname="" />}>
+      <HeaderWithPath />
+    </Suspense>
   );
+}
+
+function HeaderWithPath() {
+  return <HeaderView pathname={usePathname()} />;
+}
+
+function HeaderView({ pathname }: { pathname: string }) {
+  const count = useCart(selectCartCount);
+  const cartOpen = useUI((s) => s.cartOpen);
+  const setCartOpen = useUI((s) => s.setCartOpen);
+  // persist нь localStorage-аас уншдаг тул hydration зөрөхөөс сэргийлж hydrate болсны дараа харуулна
+  const mounted = useHydrated();
 
   const linkClass = (href: string) =>
     cn(
@@ -49,15 +61,27 @@ export function Header() {
           <Link href="/catalog" className={cn(linkClass("/catalog"), "sm:hidden")}>
             Каталог
           </Link>
-          <Link href="/cart" className={cn(linkClass("/cart"), "flex items-center gap-2")}>
+          {/* JS ачаалагдахаас өмнө /cart руу шилжинэ; дараа нь mini-cart drawer нээнэ */}
+          <a
+            href="/cart"
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+              e.preventDefault();
+              setCartOpen(true);
+            }}
+            aria-haspopup="dialog"
+            aria-expanded={cartOpen}
+            className={cn(linkClass("/cart"), "flex items-center gap-2")}
+          >
             Сагс
             <span
-              className="inline-flex min-w-6 items-center justify-center rounded-full border border-gold-soft/40 px-1.5 py-0.5 text-[0.7rem] text-gold-soft tabular-nums"
+              key={mounted ? count : 0}
+              className="inline-flex min-w-6 items-center justify-center rounded-full border border-gold-soft/40 px-1.5 py-0.5 text-[0.7rem] text-gold-soft tabular-nums motion-safe:animate-card-in"
               aria-label={`Сагсанд ${mounted ? count : 0} бараа`}
             >
               {mounted ? count : 0}
             </span>
-          </Link>
+          </a>
         </nav>
       </div>
     </header>

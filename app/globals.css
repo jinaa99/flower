@@ -19,6 +19,16 @@
   /* Нүүрний «Доош гүйлгэ» индикаторын гулсах шугам */
   --animate-scroll-hint: scroll-hint 2.4s var(--ease-bloom) infinite;
 
+  /* Каталогийн карт шүүлтүүрийн дараа зөөлөн тодорно */
+  --animate-card-in: card-in 0.9s var(--ease-bloom) both;
+
+  @keyframes card-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+  }
+
   @keyframes scroll-hint {
     0% {
       transform: translateY(-100%);
@@ -45,6 +55,120 @@ body {
   color: var(--color-plum-950);
 }
 
+/* Каталогийн үнийн хязгаар: давхардсан хоёр range — зөвхөн бариул нь дарагдана */
+.price-range input[type="range"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  appearance: none;
+  background: transparent;
+  pointer-events: none;
+}
+.price-range input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid var(--color-gold-soft);
+  border-radius: 9999px;
+  background: var(--color-plum-950);
+  cursor: grab;
+  pointer-events: auto;
+  transition: background-color 0.3s;
+}
+.price-range input[type="range"]::-moz-range-thumb {
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid var(--color-gold-soft);
+  border-radius: 9999px;
+  background: var(--color-plum-950);
+  cursor: grab;
+  pointer-events: auto;
+  transition: background-color 0.3s;
+}
+.price-range input[type="range"]:hover::-webkit-slider-thumb,
+.price-range input[type="range"]:active::-webkit-slider-thumb {
+  background: var(--color-gold-soft);
+}
+.price-range input[type="range"]:hover::-moz-range-thumb,
+.price-range input[type="range"]:active::-moz-range-thumb {
+  background: var(--color-gold-soft);
+}
+.price-range input[type="range"]:focus-visible {
+  outline: none;
+}
+.price-range input[type="range"]:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--color-blush-300);
+  outline-offset: 3px;
+}
+.price-range input[type="range"]:focus-visible::-moz-range-thumb {
+  outline: 2px solid var(--color-blush-300);
+  outline-offset: 3px;
+}
+
+/* Нахиа loader (BloomLoader): дэлбээ ёроолоосоо дэлгэрч, буцаж хумигдана */
+.bloom-petal {
+  transform-origin: 0 0;
+  animation: bloom-petal 2.8s var(--ease-bloom) infinite alternate;
+}
+.bloom-petal[data-tone="back"] {
+  opacity: 0.75;
+}
+.bloom-petal[data-tone="mid"] {
+  opacity: 0.9;
+  animation-delay: 0.12s;
+}
+.bloom-petal[data-tone="front"] {
+  animation-delay: 0.24s;
+}
+.bloom-heart,
+.bloom-glow {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: bloom-heart 2.8s var(--ease-bloom) infinite alternate;
+}
+
+@keyframes bloom-petal {
+  0%,
+  12% {
+    transform: rotate(var(--closed)) scale(0.82, 0.9);
+  }
+  88%,
+  100% {
+    transform: rotate(var(--open)) scale(1, 1);
+  }
+}
+@keyframes bloom-heart {
+  0%,
+  30% {
+    transform: scale(0.4);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* 3D-гүй хувилбар: дэлгэцэнд орох үед зөөлөн тодорно (data-shown — HomeStatic).
+   JS-гүй үед (scripting: none) нуухгүй. */
+.reveal {
+  transition:
+    opacity 1.2s var(--ease-bloom),
+    transform 1.2s var(--ease-bloom);
+}
+@media (scripting: enabled) {
+  .reveal:not([data-shown]) {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: no-preference) and (scripting: enabled) {
+  .reveal:not([data-shown]) {
+    transform: translateY(24px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -53,5 +177,42 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* JS-гүй үед 3D аялал ажиллахгүй — нүүр 3D-гүй хувилбарыг харуулна */
+@media (scripting: none) {
+  [data-home="journey"] {
+    display: none !important;
+  }
+  [data-home="static"] {
+    display: block !important;
+  }
+}
+
+/* Reduced motion-д ч зөөлөн opacity fade үлдээнэ (хөдөлгөөнгүй, зөвхөн тодролт) */
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    transition-property: opacity !important;
+    transition-duration: 1.2s !important;
+  }
+}
+
+/* Баглаа бүрдүүлэгчийн preview (BouquetPreview): байрлал зөөлөн шилжиж, шинэ навч/толгой тодорно */
+.bouquet-node {
+  transition: transform 0.8s var(--ease-bloom);
+}
+.bouquet-pop {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: bouquet-pop 0.7s var(--ease-bloom) both;
+}
+.bouquet-shape {
+  transition: fill 0.5s var(--ease-bloom);
+}
+@keyframes bouquet-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
   }
 }

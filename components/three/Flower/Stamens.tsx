@@ -2,12 +2,8 @@
 
 import { useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import type { FlowerSpec } from "@/data/flowerSpecs";
 import { GOLDEN_ANGLE, lerp, mulberry32 } from "./math";
-
-const STAMEN_COUNT = 90;
-const PISTIL_COUNT = 5;
-const INNER_RADIUS = 0.045;
-const OUTER_RADIUS = 0.15;
 
 const _obj = new THREE.Object3D();
 const _dir = new THREE.Vector3();
@@ -15,9 +11,11 @@ const _up = new THREE.Vector3(0, 1, 0);
 
 /**
  * Цэцгийн гол: Vogel спираль (golden angle)-аар байрласан дохиур (filament + anther)
- * болон төвийн үрийн сав. Бүгд instanced — 3 draw call.
+ * болон төвийн үрийн сав. Бүгд instanced — 3 draw call. Тоо, хэмжээ, өнгө нь spec.center-ээс
+ * (цээнэ — 90 богино дохиур, сараана — 6 урт дохиур + урт үрийн сав гэх мэт).
  */
-export function Stamens() {
+export function Stamens({ center }: { center: FlowerSpec["center"] }) {
+  const { stamens: S, pistil: P } = center;
   const filaments = useRef<THREE.InstancedMesh>(null);
   const anthers = useRef<THREE.InstancedMesh>(null);
   const pistils = useRef<THREE.InstancedMesh>(null);
@@ -31,29 +29,29 @@ export function Stamens() {
 
   const materials = useMemo(
     () => ({
-      filament: new THREE.MeshStandardMaterial({ color: "#EFD9A8", roughness: 0.6 }),
+      filament: new THREE.MeshStandardMaterial({ color: S.filament, roughness: 0.6 }),
       anther: new THREE.MeshPhysicalMaterial({
-        color: "#D9AE4E",
+        color: S.anther,
         roughness: 0.55,
         sheen: 0.6,
         sheenColor: new THREE.Color("#F3D58A"),
         emissive: new THREE.Color("#5A3A10"),
         emissiveIntensity: 0.25,
       }),
-      pistil: new THREE.MeshPhysicalMaterial({ color: "#B97A86", roughness: 0.45, sheen: 0.5, sheenColor: new THREE.Color("#F6DDE0") }),
+      pistil: new THREE.MeshPhysicalMaterial({ color: P.color, roughness: 0.45, sheen: 0.5, sheenColor: new THREE.Color("#F6DDE0") }),
     }),
-    [],
+    [S.filament, S.anther, P.color],
   );
 
   useLayoutEffect(() => {
     const rand = mulberry32(42);
-    for (let i = 0; i < STAMEN_COUNT; i++) {
+    for (let i = 0; i < S.count; i++) {
       // Vogel спираль: r ∝ √i жигд нягтралтай
-      const f = Math.sqrt((i + 0.5) / STAMEN_COUNT);
-      const r = lerp(INNER_RADIUS, OUTER_RADIUS, f);
+      const f = Math.sqrt((i + 0.5) / S.count);
+      const r = lerp(S.radius[0], S.radius[1], f);
       const theta = i * GOLDEN_ANGLE;
-      const lean = lerp(0.25, 0.85, f) + (rand() - 0.5) * 0.25;
-      const height = lerp(0.15, 0.09, f) * (0.85 + rand() * 0.3);
+      const lean = lerp(S.lean[0], S.lean[1], f) + (rand() - 0.5) * 0.25;
+      const height = lerp(S.height[0], S.height[1], f) * (0.85 + rand() * 0.3);
 
       // Гадагш хазайсан чиглэл
       _dir.set(Math.cos(theta) * Math.sin(lean), Math.cos(lean), Math.sin(theta) * Math.sin(lean)).normalize();
@@ -61,27 +59,30 @@ export function Stamens() {
       _obj.quaternion.setFromUnitVectors(_up, _dir);
       _obj.scale.set(1, height, 1);
       _obj.updateMatrix();
-      filaments.current!.setMatrixAt(i, _obj.matrix);
+      filaments.current?.setMatrixAt(i, _obj.matrix);
 
       _obj.position.addScaledVector(_dir, height);
-      _obj.scale.set(0.011, 0.022, 0.011);
+      _obj.scale.set(S.antherSize[0], S.antherSize[1], S.antherSize[0]);
       _obj.updateMatrix();
-      anthers.current!.setMatrixAt(i, _obj.matrix);
+      anthers.current?.setMatrixAt(i, _obj.matrix);
     }
-    for (let i = 0; i < PISTIL_COUNT; i++) {
-      const theta = (i / PISTIL_COUNT) * Math.PI * 2;
-      _dir.set(Math.cos(theta) * 0.35, 1, Math.sin(theta) * 0.35).normalize();
-      _obj.position.set(Math.cos(theta) * 0.018, 0.02, Math.sin(theta) * 0.018);
+    for (let i = 0; i < P.count; i++) {
+      const theta = (i / P.count) * Math.PI * 2;
+      // Нэг үрийн сав (сараана) босоо, олон бол гадагш бага зэрэг хазайна
+      const splay = P.count > 1 ? 0.35 : 0;
+      _dir.set(Math.cos(theta) * splay, 1, Math.sin(theta) * splay).normalize();
+      _obj.position.set(Math.cos(theta) * P.spread, 0.02, Math.sin(theta) * P.spread);
       _obj.quaternion.setFromUnitVectors(_up, _dir);
-      _obj.scale.set(0.017, 0.045, 0.017);
+      _obj.scale.set(P.size[0], P.size[1], P.size[0]);
       _obj.updateMatrix();
-      pistils.current!.setMatrixAt(i, _obj.matrix);
+      pistils.current?.setMatrixAt(i, _obj.matrix);
     }
-    for (const mesh of [filaments.current!, anthers.current!, pistils.current!]) {
+    for (const mesh of [filaments.current, anthers.current, pistils.current]) {
+      if (!mesh) continue;
       mesh.instanceMatrix.needsUpdate = true;
       mesh.computeBoundingSphere();
     }
-  }, []);
+  }, [S, P]);
 
   useLayoutEffect(
     () => () => {
@@ -93,9 +94,13 @@ export function Stamens() {
 
   return (
     <group>
-      <instancedMesh ref={filaments} args={[geometries.filament, materials.filament, STAMEN_COUNT]} />
-      <instancedMesh ref={anthers} args={[geometries.anther, materials.anther, STAMEN_COUNT]} />
-      <instancedMesh ref={pistils} args={[geometries.pistil, materials.pistil, PISTIL_COUNT]} />
+      {S.count > 0 && (
+        <>
+          <instancedMesh ref={filaments} args={[geometries.filament, materials.filament, S.count]} />
+          <instancedMesh ref={anthers} args={[geometries.anther, materials.anther, S.count]} />
+        </>
+      )}
+      {P.count > 0 && <instancedMesh ref={pistils} args={[geometries.pistil, materials.pistil, P.count]} />}
     </group>
   );
 }

@@ -1,29 +1,30 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { connection } from "next/server";
+import { Suspense } from "react";
 import { PageShell } from "@/components/ui/PageShell";
-import { getFlowers } from "@/lib/data";
-import { formatPrice } from "@/lib/utils";
+import { toCatalogItem, type CatalogItem } from "@/lib/catalog";
+import { getCoverImage, getFlowers } from "@/lib/data";
+import { CatalogBrowser, CatalogSkeleton } from "./CatalogBrowser";
 
 export const metadata: Metadata = { title: "Каталог" };
 
-export default function CatalogPage() {
-  const flowers = getFlowers();
+export default async function CatalogPage() {
+  const items = (await getFlowers()).map((f) => toCatalogItem(f, getCoverImage(f)));
   return (
     <PageShell eyebrow="Каталог" title="Манай цэцэгс" subtitle="Улирлын шилдэг цэцэгсээс сонгоорой.">
-      <ul className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-        {flowers.map((f) => (
-          <li key={f.slug}>
-            <Link
-              href={`/flowers/${f.slug}`}
-              className="group block border border-ivory/10 p-8 transition-colors duration-500 hover:border-gold-soft/40"
-            >
-              <h2 className="font-display text-3xl">{f.name.mn}</h2>
-              <p className="mt-1 text-sm tracking-widest text-ivory/50 uppercase">{f.name.en}</p>
-              <p className="mt-6 text-gold-soft">{formatPrice(f.price)}</p>
-            </Link>
-          </li>
-        ))}
-      </ul>
+      {/* Шүүлтүүр URL-аас уншдаг тул request бүрт stream-лэгдэнэ; бүрхүүл нь статик */}
+      <Suspense fallback={<CatalogSkeleton />}>
+        <CatalogResults items={items} />
+      </Suspense>
     </PageShell>
   );
+}
+
+/**
+ * Request хүртэл хүлээснээр `useSearchParams` серверт утгатай болж, хуваалцсан холбоос
+ * (?q=…&color=…) шүүгдсэн үр дүнгээрээ HTML-д ирнэ — skeleton-оос client render хүлээхгүй.
+ */
+async function CatalogResults({ items }: { items: CatalogItem[] }) {
+  await connection();
+  return <CatalogBrowser items={items} />;
 }

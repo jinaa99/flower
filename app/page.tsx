@@ -1,17 +1,12 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { getFlower } from "@/lib/data";
-import { formatPrice } from "@/lib/utils";
+import { getJourney } from "@/lib/data";
 import { HomeHero } from "./HomeHero";
 
 // Нүүр хуудас — scroll-driven 3D туршлага: ард нь fixed Canvas, урд нь HTML хэсгүүд.
-export default function Home() {
-  const peony = getFlower("peony");
-  if (!peony) notFound();
-
+export default async function Home() {
   return (
     <>
-      <HomeHero href={`/flowers/${peony.slug}`} price={formatPrice(peony.price)} />
+      <HomeHero stops={await getJourney()} />
 
       {/* Hero-гийн дараах хэсгүүд Canvas-ийг дэвсгэрээрээ халхална */}
       <section className="relative z-10 flex min-h-dvh items-center bg-plum-950">

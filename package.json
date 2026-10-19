@@ -6,30 +6,46 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "images:fetch": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file-if-exists=.env.local scripts/fetch-unsplash.ts",
+    "postinstall": "prisma generate",
+    "db:start": "prisma dev --name flower --detach",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio",
+    "db:seed:reset": "prisma db seed -- --reset"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.9.2",
+    "@prisma/adapter-pg": "^7.10.1",
+    "@prisma/client": "^7.10.1",
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.2",
     "@react-three/postprocessing": "^3.2.0",
     "gsap": "^3.15.0",
     "lenis": "^1.3.27",
     "next": "16.4.2",
+    "pg": "^8.23.1",
     "postprocessing": "^6.39.5",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "react-hook-form": "^7.90.0",
     "three": "^0.186.1",
+    "zod": "^4.6.7",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^20",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/three": "^0.186.0",
     "eslint": "^9",
     "eslint-config-next": "16.4.2",
+    "prisma": "^7.10.1",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }

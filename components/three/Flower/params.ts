@@ -1,21 +1,23 @@
 "use client";
 
-/** Цэцэг, гэрэл, postprocessing-ийн бүх тохируулах параметр. /lab хуудас эдгээрийг удирдана. */
+/**
+ * Бүх цэцэгт нийтлэг тохируулга — /lab хуудас эдгээрийг удирдана. Хэлбэр ба гэрэл нь
+ * FlowerSpec-ийн утгын үржвэр (1 = spec хэвээр), материал ба postprocessing абсолют утга.
+ */
 export type FlowerParams = {
-  /** 0 = хаалттай нахиа, 1 = бүрэн дэлбээлсэн */
+  /** 0 = хаалттай нахиа, 1 = бүрэн дэлбээлсэн (lab; нүүрэнд scroll удирдана) */
   bloom: number;
-  // Дэлбээний хэлбэр (бүрэн дэлгэрсэн, гадна давхаргын үеийн утга)
+  // Дэлбээний хэлбэр — spec × үржвэр
   length: number;
   width: number;
   cupAmount: number;
   curlAmount: number;
   ruffle: number;
-  whorls: number;
   // Материал
   sheen: number;
   translucency: number;
   veins: number;
-  // Гэрэл
+  // Гэрэл — spec.world × үржвэр
   keyIntensity: number;
   rimIntensity: number;
   envIntensity: number;
@@ -30,17 +32,16 @@ export type FlowerParams = {
 export const defaultFlowerParams: FlowerParams = {
   bloom: 0.85,
   length: 1,
-  width: 0.92,
-  cupAmount: 0.55,
-  curlAmount: 0.45,
-  ruffle: 0.6,
-  whorls: 5,
+  width: 1,
+  cupAmount: 1,
+  curlAmount: 1,
+  ruffle: 1,
   sheen: 0.35,
   translucency: 0.55,
   veins: 0.55,
-  keyIntensity: 1.5,
-  rimIntensity: 2.6,
-  envIntensity: 0.35,
+  keyIntensity: 1,
+  rimIntensity: 1,
+  envIntensity: 1,
   glow: 0.35,
   glowThreshold: 0.8,
   vignette: 0.55,
@@ -57,17 +58,16 @@ export const paramGroups: { title: string; controls: ParamControl[] }[] = [
     title: "Цэцэглэлт",
     controls: [
       { key: "bloom", label: "Bloom", min: 0, max: 1, step: 0.001 },
-      { key: "whorls", label: "Давхарга", min: 3, max: 6, step: 1 },
     ],
   },
   {
     title: "Дэлбээ",
     controls: [
-      { key: "length", label: "Урт", min: 0.6, max: 1.4, step: 0.01 },
-      { key: "width", label: "Өргөн", min: 0.4, max: 1.4, step: 0.01 },
-      { key: "cupAmount", label: "Хотгор (cup)", min: 0, max: 1.2, step: 0.01 },
-      { key: "curlAmount", label: "Эргэлт (curl)", min: 0, max: 1.2, step: 0.01 },
-      { key: "ruffle", label: "Долгион (ruffle)", min: 0, max: 1.5, step: 0.01 },
+      { key: "length", label: "Урт ×", min: 0.6, max: 1.4, step: 0.01 },
+      { key: "width", label: "Өргөн ×", min: 0.4, max: 1.5, step: 0.01 },
+      { key: "cupAmount", label: "Хотгор (cup) ×", min: 0, max: 2, step: 0.01 },
+      { key: "curlAmount", label: "Эргэлт (curl) ×", min: 0, max: 2.5, step: 0.01 },
+      { key: "ruffle", label: "Долгион (ruffle) ×", min: 0, max: 2.5, step: 0.01 },
     ],
   },
   {
@@ -82,9 +82,9 @@ export const paramGroups: { title: string; controls: ParamControl[] }[] = [
   {
     title: "Гэрэл",
     controls: [
-      { key: "keyIntensity", label: "Key light", min: 0, max: 4, step: 0.01 },
-      { key: "rimIntensity", label: "Rim / back light", min: 0, max: 8, step: 0.01 },
-      { key: "envIntensity", label: "Environment", min: 0, max: 1.5, step: 0.01 },
+      { key: "keyIntensity", label: "Key light ×", min: 0, max: 3, step: 0.01 },
+      { key: "rimIntensity", label: "Rim / back light ×", min: 0, max: 3, step: 0.01 },
+      { key: "envIntensity", label: "Environment ×", min: 0, max: 4, step: 0.01 },
     ],
   },
   {

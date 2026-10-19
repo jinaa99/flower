@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getJourney } from "@/lib/data";
 import { FlowerLab } from "./FlowerLab";
 
 export const metadata: Metadata = {
@@ -7,6 +8,6 @@ export const metadata: Metadata = {
 };
 
 // Хөгжүүлэлтийн туршилтын хуудас — цэцгийн бүх параметрийг гараар тааруулна.
-export default function LabPage() {
-  return <FlowerLab />;
+export default async function LabPage() {
+  return <FlowerLab stops={await getJourney()} />;
 }

@@ -3,14 +3,20 @@
 import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 
-/** Камераас үл хамаарах screen-space radial gradient: төвд plum-800, захаараа plum-950. */
-export function Backdrop() {
+type Props = {
+  /** Uniform-ууд эдгээрийг шууд заана — World кадр бүр өнгийг нь өөрчилнө */
+  inner: THREE.Color;
+  outer: THREE.Color;
+};
+
+/** Камераас үл хамаарах screen-space radial gradient: төвд inner, захаараа outer. */
+export function Backdrop({ inner, outer }: Props) {
   const { geometry, material } = useMemo(() => {
     const geometry = new THREE.PlaneGeometry(2, 2);
     const material = new THREE.ShaderMaterial({
       uniforms: {
-        uInner: { value: new THREE.Color("#3A1C30") },
-        uOuter: { value: new THREE.Color("#1E0F1A") },
+        uInner: { value: inner },
+        uOuter: { value: outer },
       },
       vertexShader: /* glsl */ `
         varying vec2 vUv;
@@ -34,7 +40,7 @@ export function Backdrop() {
       depthWrite: false,
     });
     return { geometry, material };
-  }, []);
+  }, [inner, outer]);
 
   useEffect(
     () => () => {

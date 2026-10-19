@@ -1,6 +1,7 @@
 "use client";
 
 import * as THREE from "three";
+import type { Outline, PetalColors } from "@/data/flowerSpecs";
 import { createWindUniforms, windVertexPars } from "./wind";
 
 /**
@@ -30,44 +31,27 @@ export type PetalPalette = {
   tip: THREE.Color;
   veinTint: THREE.Color;
   trans: THREE.Color;
+  sheen: THREE.Color;
   /** 0 = дэлбээний сэвэлгэр судал, 1 = навчны гол + хажуу судал */
   leaf: number;
   /** x: хамгийн өргөн цэгийн exponent, y: үзүүрийн бөөрөнхий (бага = мохоо), z: ёроолын өргөн */
   shape: THREE.Vector3;
 };
 
-const c = (hex: string) => new THREE.Color(hex);
-
-export const palettes = {
-  // ёроолд гүн blush → blush-300 → ivory үзүүр
-  peony: {
-    base: c("#B86E86"),
-    mid: c("#E3A6B2"),
-    tip: c("#F8F3EC"),
-    veinTint: c("#E3A9B8"),
-    trans: c("#FFD2D6"),
-    leaf: 0,
-    shape: new THREE.Vector3(1.6, 0.5, 0.14),
-  },
-  sepal: {
-    base: c("#3E5A33"),
-    mid: c("#56733F"),
-    tip: c("#7A6A44"),
-    veinTint: c("#6E8A55"),
-    trans: c("#B5CF7A"),
-    leaf: 1,
-    shape: new THREE.Vector3(1.0, 0.8, 0.2),
-  },
-  leaf: {
-    base: c("#2E4728"),
-    mid: c("#3E5E33"),
-    tip: c("#4D6C3B"),
-    veinTint: c("#7E9C62"),
-    trans: c("#A8C772"),
-    leaf: 1,
-    shape: new THREE.Vector3(0.76, 1.0, 0.04),
-  },
-} satisfies Record<string, PetalPalette>;
+/** FlowerSpec-ийн hex өнгө + outline → shader-ийн palette (дэлбээ, sepal, навч) */
+export function createPalette(colors: PetalColors, outline: Outline, leaf = 0): PetalPalette {
+  const c = (hex: string) => new THREE.Color(hex);
+  return {
+    base: c(colors.base),
+    mid: c(colors.mid),
+    tip: c(colors.tip),
+    veinTint: c(colors.veinTint),
+    trans: c(colors.trans),
+    sheen: c(colors.sheen),
+    leaf,
+    shape: new THREE.Vector3(...outline),
+  };
+}
 
 /** Бүх material-д хуваалцах uniform-ууд (lab-аас нэг дор өөрчлөгдөнө). */
 export function createSharedPetalUniforms() {
@@ -91,12 +75,13 @@ function createOwnUniforms(palette: PetalPalette, seed: number) {
     uSway: { value: new THREE.Vector2() },
     uFlutter: { value: 0 },
     uSeed: { value: seed },
-    uShape: { value: palette.shape },
-    uBaseColor: { value: palette.base },
-    uMidColor: { value: palette.mid },
-    uTipColor: { value: palette.tip },
-    uVeinTint: { value: palette.veinTint },
-    uTransColor: { value: palette.trans },
+    // Хуулбар: material бүр өнгөө бие даан өөрчилж болно (PetalDrift цэцгээс цэцэгт шилжинэ)
+    uShape: { value: palette.shape.clone() },
+    uBaseColor: { value: palette.base.clone() },
+    uMidColor: { value: palette.mid.clone() },
+    uTipColor: { value: palette.tip.clone() },
+    uVeinTint: { value: palette.veinTint.clone() },
+    uTransColor: { value: palette.trans.clone() },
     uLeaf: { value: palette.leaf },
   };
 }
@@ -291,7 +276,7 @@ export function createPetalMaterial(
     specularIntensity: palette.leaf ? 0.4 : 0.12,
     sheen: 0.7,
     sheenRoughness: 0.45,
-    sheenColor: palette.leaf ? new THREE.Color("#C9D9A8") : new THREE.Color("#F3D3D8"),
+    sheenColor: palette.sheen.clone(),
     side: THREE.DoubleSide,
     transparent: drift,
     depthWrite: !drift,

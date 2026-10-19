@@ -3,14 +3,17 @@
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import type { FlowerSpec } from "@/data/flowerSpecs";
 import { getScrollVelocity } from "@/lib/scrollMotion";
+import type { JourneyState } from "./journey";
 import { lerp, mulberry32, smoothstep } from "./math";
 import type { FlowerParams } from "./params";
 import {
+  createPalette,
   createPetalGeometry,
   createPetalMaterial,
   createSharedPetalUniforms,
-  palettes,
+  type PetalPalette,
   type PetalUniforms,
   type SharedPetalUniforms,
 } from "./petalMaterial";
@@ -29,14 +32,14 @@ import {
  * Scroll хийхэд дэлгэцийн гүн рүү урсах дэлбээний мөр.
  *
  * Нэг InstancedMesh, цэцгийн дэлбээтэй ижил shader (PETAL_DRIFT: seed, fade нь instance attribute).
- * Object pool: MAX слот нэг удаа үүсч, scroll-ийн хурдад пропорциональ тоогоор сул слот сэргэнэ.
+ * Object pool: `count` слот нэг удаа үүсч (чанарын түвшнээр; солигдвол FlowerScene key-ээр дахин mount), scroll-ийн хурдад пропорциональ тоогоор сул слот сэргэнэ.
  * Дэлбээ төрөх үеийнхээ камерын чиглэлээр гүн рүү урсаж, эргэлдэж (tumble), цэцэгтэй ижил
  * салхинд (sampleWind + scroll-ийн салхи) автагдана. Scroll зогсоход урсгал сулран, байгаа
  * дэлбээ аажмаар унаж бүдгэрнэ. Ойрын дэлбээ DOF мэт бүдэг, холынх жижгэрч алга болно.
  * Instance-ууд кадр бүр арнаас урагш эрэмбэлэгдэнэ (transparent, depthWrite-гүй).
+ * Өнгө нь харагдаж буй цэцгийн дэлбээнд зөөлөн шилжинэ (аялал дахь ертөнц солигдоход).
  */
 
-const MAX = 72;
 /** Хамгийн хурдан scroll-ийн үед секундэд төрөх дэлбээ */
 const SPAWN_RATE = 16;
 /** Энэ хурдаас (px/frame) удаан scroll-д шинэ дэлбээ гарахгүй */
@@ -63,23 +66,24 @@ const _quat = new THREE.Quaternion();
 const _matrix = new THREE.Matrix4();
 const _wind: WindSample = { x: 0, z: 0, magnitude: 0 };
 
-function createPool() {
+function createPool(max: number) {
   return {
-    alive: new Uint8Array(MAX),
-    pos: new Float32Array(MAX * 3),
-    vel: new Float32Array(MAX * 3),
+    max,
+    alive: new Uint8Array(max),
+    pos: new Float32Array(max * 3),
+    vel: new Float32Array(max * 3),
     /** Төрөх үеийн камерын урагш чиглэл — гүн рүү урсах тэнхлэг */
-    dir: new Float32Array(MAX * 3),
-    rot: new Float32Array(MAX * 3),
-    spin: new Float32Array(MAX * 3),
-    age: new Float32Array(MAX),
-    life: new Float32Array(MAX),
-    seed: new Float32Array(MAX),
-    size: new Float32Array(MAX),
-    fade: new Float32Array(MAX),
-    depth: new Float32Array(MAX),
+    dir: new Float32Array(max * 3),
+    rot: new Float32Array(max * 3),
+    spin: new Float32Array(max * 3),
+    age: new Float32Array(max),
+    life: new Float32Array(max),
+    seed: new Float32Array(max),
+    size: new Float32Array(max),
+    fade: new Float32Array(max),
+    depth: new Float32Array(max),
     /** Амьд слотуудын арнаас урагш эрэмбэ */
-    order: new Int32Array(MAX),
+    order: new Int32Array(max),
     count: 0,
     spawnAcc: 0,
     /** Scroll-ийн урсгалын хүч (0–1): хурдан өсөж, удаан сулрана */
@@ -90,12 +94,20 @@ function createPool() {
 type Pool = ReturnType<typeof createPool>;
 
 type Props = {
+  /** Pool-ийн хэмжээ (нэг зэрэг байх дэлбээний дээд тоо) */
+  count: number;
+  specs: readonly FlowerSpec[];
+  /** Өгвөл journey.shown цэцгийн өнгийг дагана; үгүй бол specs[0] */
+  journey?: JourneyState;
   params: FlowerParams;
   wind: WindConfig;
   reducedMotion: boolean;
 };
 
-export function PetalDrift({ params, wind, reducedMotion }: Props) {
+/** Цэцэг хооронд дэлбээний өнгө шилжих хурд (1/сек) */
+const TINT_DAMPING = 2.5;
+
+export function PetalDrift({ count, specs, journey, params, wind, reducedMotion }: Props) {
   const paramsRef = useRef(params);
   const windRef = useRef(wind);
   useLayoutEffect(() => {
@@ -104,16 +116,18 @@ export function PetalDrift({ params, wind, reducedMotion }: Props) {
   });
 
   const meshRef = useRef<THREE.InstancedMesh>(null);
-  const pool = useMemo(() => createPool(), []);
-  // sampleWind нь цагаас л хамаарах тул Peony-гийн sim-тэй ижил салхи
+  const pool = useMemo(() => createPool(count), [count]);
+  // sampleWind нь цагаас л хамаарах тул цэцгийн sim-тэй ижил салхи
   const sim = useMemo(() => createWindSim(), []);
   const shared = useMemo(() => createSharedPetalUniforms(), []);
 
+  const tints = useMemo(() => specs.map((s) => createPalette(s.petals.colors, s.petals.outline)), [specs]);
+
   const { geometry, drift, material, uniforms } = useMemo(() => {
     const geometry = createPetalGeometry(SEGMENTS);
-    const drift = new THREE.InstancedBufferAttribute(new Float32Array(MAX * 2), 2).setUsage(THREE.DynamicDrawUsage);
+    const drift = new THREE.InstancedBufferAttribute(new Float32Array(count * 2), 2).setUsage(THREE.DynamicDrawUsage);
     geometry.setAttribute("aDrift", drift);
-    const { material, uniforms } = createPetalMaterial(palettes.peony, shared, 0, { drift: true });
+    const { material, uniforms } = createPetalMaterial(tints[0], shared, 0, { drift: true });
     // Унасан дэлбээ: дунд зэргийн хотгор, үзүүр бага зэрэг гадагш
     uniforms.uLength.value = 1;
     uniforms.uWidth.value = 0.85;
@@ -122,7 +136,7 @@ export function PetalDrift({ params, wind, reducedMotion }: Props) {
     uniforms.uRuffle.value = 0.7;
     uniforms.uAO.value = 0.15;
     return { geometry, drift, material, uniforms };
-  }, [shared]);
+  }, [shared, tints, count]);
 
   useEffect(
     () => () => {
@@ -147,6 +161,7 @@ export function PetalDrift({ params, wind, reducedMotion }: Props) {
     const dt = Math.min(delta, 1 / 30);
 
     updateMaterial(shared, uniforms, material, p, cfg);
+    tint(uniforms, material, tints[journey?.shown ?? 0], 1 - Math.exp(-dt * TINT_DAMPING));
 
     // Reduced motion: урсах дэлбээ огт гарахгүй
     if (reducedMotion) {
@@ -170,7 +185,7 @@ export function PetalDrift({ params, wind, reducedMotion }: Props) {
     write(pool, mesh, drift);
   });
 
-  return <instancedMesh ref={meshRef} args={[geometry, material, MAX]} frustumCulled={false} />;
+  return <instancedMesh ref={meshRef} args={[geometry, material, count]} frustumCulled={false} />;
 }
 
 function updateMaterial(
@@ -184,6 +199,17 @@ function updateMaterial(
   shared.uVeins.value = p.veins;
   material.sheen = p.sheen;
   uniforms.uFlutter.value = cfg.flutter * 1.4;
+}
+
+/** Дэлбээний өнгө, хэлбэрийг харагдаж буй цэцгийнх рүү ойртуулна */
+function tint(u: PetalUniforms, material: THREE.MeshPhysicalMaterial, to: PetalPalette, k: number) {
+  u.uBaseColor.value.lerp(to.base, k);
+  u.uMidColor.value.lerp(to.mid, k);
+  u.uTipColor.value.lerp(to.tip, k);
+  u.uVeinTint.value.lerp(to.veinTint, k);
+  u.uTransColor.value.lerp(to.trans, k);
+  u.uShape.value.lerp(to.shape, k);
+  material.sheenColor.lerp(to.sheen, k);
 }
 
 function clear(pool: Pool, mesh: THREE.InstancedMesh) {
@@ -272,7 +298,7 @@ function simulate(
   const drag = 1 - Math.exp(-dt * 1.6);
   let n = 0;
 
-  for (let i = 0; i < MAX; i++) {
+  for (let i = 0; i < pool.max; i++) {
     if (!pool.alive[i]) continue;
     const i3 = i * 3;
     const s = pool.seed[i];

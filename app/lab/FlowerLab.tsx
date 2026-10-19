@@ -1,10 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { defaultFlowerParams, paramGroups, type FlowerParams } from "@/components/three/Flower/params";
 import { defaultWindConfig, windGroups, type WindConfig } from "@/components/three/Flower/wind";
+import type { JourneyFlower } from "@/lib/data";
 import { scrollMotion } from "@/lib/scrollMotion";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { cn } from "@/lib/utils";
@@ -18,7 +19,11 @@ const FlowerScene = dynamic(() => import("@/components/three/Flower/FlowerScene"
   ),
 });
 
-export function FlowerLab() {
+export function FlowerLab({ stops }: { stops: JourneyFlower[] }) {
+  const [slug, setSlug] = useState(stops[0].flower.slug);
+  const stop = stops.find((s) => s.flower.slug === slug) ?? stops[0];
+  const { flower } = stop;
+  const specs = useMemo(() => [stop.spec], [stop]);
   const [params, setParams] = useState<FlowerParams>(defaultFlowerParams);
   const [wind, setWind] = useState<WindConfig>(defaultWindConfig);
   const [panelOpen, setPanelOpen] = useState(true);
@@ -69,7 +74,7 @@ export function FlowerLab() {
   return (
     <div className="fixed inset-x-0 top-(--header-height) bottom-0" data-lenis-prevent>
       <div className="absolute inset-0">
-        <FlowerScene params={params} wind={wind} onStats={showStats} />
+        <FlowerScene specs={specs} params={params} wind={wind} onStats={showStats} />
       </div>
 
       <p
@@ -98,7 +103,28 @@ export function FlowerLab() {
         )}
       >
         <p className="text-xs tracking-[0.3em] text-gold-soft uppercase">Lab</p>
-        <h1 className="mt-2 font-display text-3xl font-light">Цээнэ · Peony</h1>
+        <h1 className="mt-2 font-display text-3xl font-light">
+          {flower.nameMn} · {flower.nameEn}
+        </h1>
+
+        <div className="mt-4 grid grid-cols-2 gap-2" role="group" aria-label="Цэцэг сонгох">
+          {stops.map(({ flower: f }) => (
+            <button
+              key={f.slug}
+              type="button"
+              onClick={() => setSlug(f.slug)}
+              aria-pressed={f.slug === slug}
+              className={cn(
+                "border px-2 py-2 text-xs transition-colors",
+                f.slug === slug
+                  ? "border-blush-300 text-blush-300"
+                  : "border-ivory/15 text-ivory/70 hover:border-gold-soft/50 hover:text-gold-soft",
+              )}
+            >
+              {f.nameMn}
+            </button>
+          ))}
+        </div>
 
         <div className="mt-6 flex gap-2">
           <LabButton onClick={playBloom}>Нээх ▶</LabButton>

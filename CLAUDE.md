@@ -10,11 +10,13 @@ Scroll-driven 3D туршлагатай, premium botanical уур амьсгал
 - 3D: `three`, `@react-three/fiber`, `@react-three/drei`, `@react-three/postprocessing`
 - Animation: `gsap` + `ScrollTrigger`, `lenis` (smooth scroll)
 - State: `zustand` (сагс — `persist`-тэй, UI state)
+- DB: **PostgreSQL + Prisma 7** (`prisma-client` generator → `lib/generated/prisma`, `@prisma/adapter-pg`, `prisma.config.ts` нь `.env.local`-ийг уншина)
 - Шрифт (`next/font/google`, `latin` + `cyrillic`):
   - Display: **Cormorant Garamond** → `font-display` (Fraunces кирилл дэмждэггүй тул сонгоогүй)
   - Body: **Manrope** → `font-sans` (default)
 
-Командууд: `npm run dev`, `npm run build`, `npm run lint`.
+Командууд: `npm run dev`, `npm run build`, `npm run lint`, `npm run images:fetch` (Unsplash, `.env.local`-д `UNSPLASH_ACCESS_KEY`).
+DB: `npm run db:start` (локал `prisma dev`), `db:migrate`, `db:seed` (байхгүйг нэмнэ), `db:seed:reset` (каталогийг файлаар дарна), `db:studio`. Хувьсагчид: `.env.example`.
 
 ## Design tokens
 
@@ -42,12 +44,21 @@ app/
   catalog/                # бүх цэцэг
   flowers/[slug]/         # цэцгийн дэлгэрэнгүй (generateStaticParams)
   bouquet-builder/        # баглаа бүрдүүлэгч
-  cart/  checkout/
+  cart/  checkout/         # сагс; checkout — react-hook-form + zod (lib/checkout.ts, сервертэй нэг schema)
+  order/[id]/             # захиалга баталгаажсан + mock төлбөр (QPay / шилжүүлэг)
+  api/orders/             # route handler: POST захиалга (үнийг серверт дахин тооцно, нөөц хасна), [id]/pay — mock
+  admin/                  # нууц үгтэй (ADMIN_PASSWORD): (panel)/ захиалга + төлөв, flowers/ нөөц, үнэ, засвар; actions.ts
+prisma/                   # schema.prisma (Flower, Variant, DeliverySlot, Order, OrderItem), migrations/, seed.ts
+proxy.ts                  # /admin → нэвтрээгүй бол /admin/login (зөвхөн UX — жинхэнэ шалгалт requireAdmin)
 components/
   three/                  # 3D бүх зүйл (Canvas, mesh, shader, postprocessing)
   ui/                     # Header, PageShell, SmoothScroll, бусад UI
-lib/                      # data.ts (getter), store.ts (zustand), utils.ts
-data/                     # flowers.ts — цэцгийн мэдээлэл
+lib/                      # data.ts (DB getter, "use cache" + cacheTag), db.ts (Prisma client), store.ts (zustand),
+                          # utils.ts, cart.ts (мөр/дүн), orders.ts (transaction: нөөц хасах, завсрын багтаамж),
+                          # adminAuth.ts / adminSession.ts (HMAC cookie, requireAdmin), orderStatus.ts
+data/                     # flowers.ts — каталогийн seed (сайт DB-ээс уншина); journey.ts — нүүрний 3D аялал (story + spec);
+                          # flowerSpecs.ts — 3D FlowerSpec; flowerImages.ts — script-ийн үүсгэдэг (гараар бүү засаарай)
+scripts/                  # fetch-unsplash.ts — Node-оор шууд (type stripping) ажиллана
 public/images/
 ```
 
@@ -59,10 +70,20 @@ public/images/
 - **Хэл:** UI текст бүгд Монгол хэлээр (`<html lang="mn">`). Цэцгийн нэр Монгол + Англи (`name: { mn, en }`), жишээ нь «Цээнэ · Peony». Үнэ `formatPrice()` (₮).
 - ScrollTrigger-ийг Lenis-тэй хамт ашиглана — Lenis нь `gsap.ticker`-ээр ажилладаг тул тусдаа `requestAnimationFrame` loop бүү нэм.
 - Zustand `persist` store-ийг client-д mount болсны дараа харуулна (hydration mismatch-аас сэргийлэх).
+- **Каталог DB-д:** уншилт `lib/data.ts`-ээр (`"use cache"`, tag `flowers` / `delivery-slots`). Admin засварт `updateTag`,
+  захиалгын дараа `revalidateTag(…, "max")`. Үнэ, нөөцийг захиалгад cache-гүй `get*Fresh()`-ээр шалгана.
+  Зураг, 3D spec, journey кодонд үлдэж slug-аар нэгдэнэ.
+- **Admin:** Server Action, admin хуудас бүр `requireAdmin()` дуудна (proxy-д найдахгүй); session уншдаг хэсэг `<Suspense>` дотор.
 
 ## Ажлын дараалал
 
 1. **Эхлээд нэг цэцгийг төгс болгоно** (`peony` / Цээнэ): 3D загвар, материал, гэрэл, scroll animation, дэлгэрэнгүй хуудас, сагсанд нэмэх — бүгд бүрэн, өнгөлөгдсөн.
 2. Үүний дараа л өргөжүүлнэ: бусад цэцэг, каталог, баглаа бүрдүүлэгч, checkout.
 
-Шинэ цэцэг нэмэхдээ эхний цэцгийн бий болгосон pattern-ийг давтана — шинэ шийдэл бүү зохио.
+Шинэ цэцэг нэмэхдээ эхний цэцгийн бий болгосон pattern-ийг давтана — шинэ шийдэл бүү зохио:
+каталогт `data/flowers.ts`-д нэмж (`flowerSlugs`-д ч) `npm run db:seed`, `npm run images:fetch -- --only=slug`; 3D аялалд оруулах бол
+`data/flowerSpecs.ts`-д `FlowerSpec` нэмж `data/journey.ts`-д холбоно. Хэлбэрийг `/lab`-д тааруулна.
+
+- `data/` дахь файлууд script-ээс Node-оор шууд импортлогдоно: зөвхөн relative `.ts` импорт, `@/` alias-гүй, төрөл `import type`.
+- Unsplash зураг: сайт `images.unsplash.com`-ийг hotlink хийнэ (`FlowerPhoto` / `unsplashLoader`, Next optimizer-ээр биш),
+  харуулсан газар бүрт `PhotoCredit` attribution. Local хуулбар (`local`) зөвхөн хөгжүүлэлтэд.
