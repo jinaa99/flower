@@ -15,6 +15,18 @@
   --font-sans: var(--font-manrope), system-ui, sans-serif;
 
   --ease-bloom: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Нүүрний «Доош гүйлгэ» индикаторын гулсах шугам */
+  --animate-scroll-hint: scroll-hint 2.4s var(--ease-bloom) infinite;
+
+  @keyframes scroll-hint {
+    0% {
+      transform: translateY(-100%);
+    }
+    100% {
+      transform: translateY(200%);
+    }
+  }
 }
 
 :root {

@@ -69,11 +69,17 @@ function layoutPetals(whorls: number): PetalSpec[] {
   return specs;
 }
 
-type Props = { params: FlowerParams; wind: WindConfig; reducedMotion: boolean };
+type Props = {
+  params: FlowerParams;
+  wind: WindConfig;
+  reducedMotion: boolean;
+  /** Өгвөл params.bloom-ийн оронд кадр бүр эндээс уншина (scroll-driven нүүр хуудас) */
+  bloom?: RefObject<number>;
+};
 
 const TIP = new THREE.Vector3();
 
-export function Peony({ params, wind, reducedMotion }: Props) {
+export function Peony({ params, wind, reducedMotion, bloom: bloomRef }: Props) {
   // useFrame нь хамгийн сүүлийн параметрийг ref-ээс уншина
   const paramsRef = useRef(params);
   const windRef = useRef(wind);
@@ -140,18 +146,19 @@ export function Peony({ params, wind, reducedMotion }: Props) {
     const p = paramsRef.current;
     const cfg = windRef.current;
     const dt = Math.min(delta, 1 / 30);
+    const bloom = bloomRef ? bloomRef.current : p.bloom;
     updateShared(shared, p);
 
     for (let i = 0; i < petals.length; i++) {
       const mesh = petalMeshes.current[i];
       if (!mesh) continue;
-      updatePetal(mesh, petals[i], p);
+      updatePetal(mesh, petals[i], p, bloom);
       if (reducedMotion) resetFlap(petals[i].flap, petals[i].uniforms);
       else stepFlap(petals[i].flap, mesh.matrixWorld, petals[i].uniforms, sim, cfg, dt);
     }
 
     // Sepal нахиаг тэврэх → хамгийн түрүүнд доош нээгдэнэ
-    const sepalProgress = easeInOutCubic(clamp01(p.bloom / 0.5));
+    const sepalProgress = easeInOutCubic(clamp01(bloom / 0.5));
     for (let i = 0; i < sepals.length; i++) {
       const mesh = sepalMeshes.current[i];
       if (!mesh) continue;
@@ -161,7 +168,7 @@ export function Peony({ params, wind, reducedMotion }: Props) {
     }
 
     // Гол хэсэг дотор давхарга нээгдэх үед л ургаж гарна
-    if (stamens.current) stamens.current.scale.setScalar(lerp(0.35, 1, smoothstep(0.35, 0.95, p.bloom)));
+    if (stamens.current) stamens.current.scale.setScalar(lerp(0.35, 1, smoothstep(0.35, 0.95, bloom)));
   });
 
   return (
@@ -241,10 +248,11 @@ function updatePetal(
   mesh: THREE.Mesh,
   { spec: s, uniforms: u, material }: { spec: PetalSpec; uniforms: PetalUniforms; material: THREE.MeshPhysicalMaterial },
   p: FlowerParams,
+  bloom: number,
 ) {
   const t = s.t;
   const start = (1 - t) * STAGGER;
-  const prog = easeInOutCubic(clamp01((p.bloom - start) / (1 - STAGGER)));
+  const prog = easeInOutCubic(clamp01((bloom - start) / (1 - STAGGER)));
 
   const size = lerp(0.46, 1, t ** 0.8) * lerp(0.72, 1, prog);
   const radius = lerp(0.02, 0.1, t);

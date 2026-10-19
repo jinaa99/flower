@@ -9,6 +9,7 @@ import { useReducedMotion } from "@/lib/useReducedMotion";
 import { Backdrop } from "./Backdrop";
 import type { FlowerParams } from "./params";
 import { Peony } from "./Peony";
+import { ScrollRig } from "./ScrollRig";
 import { defaultWindConfig, type WindConfig } from "./wind";
 
 type Props = {
@@ -16,14 +17,26 @@ type Props = {
   wind?: WindConfig;
   /** 0.5 сек тутам FPS-ийн текстийг дамжуулна (lab) — React state-гүйгээр DOM-д бичихэд */
   onStats?: (text: string) => void;
+  /** Нүүр хуудас: OrbitControls-гүй, bloom + камер scrollMotion.hero-г дагана */
+  scrollDriven?: boolean;
+  /** false үед render зогсоно (дэлгэцэнд харагдахгүй байхад) */
+  active?: boolean;
 };
 
-export default function FlowerScene({ params, wind = defaultWindConfig, onStats }: Props) {
+export default function FlowerScene({
+  params,
+  wind = defaultWindConfig,
+  onStats,
+  scrollDriven = false,
+  active = true,
+}: Props) {
   const reducedMotion = useReducedMotion();
   const [dpr, setDpr] = useState(1.75);
+  const bloom = useRef(params.bloom);
 
   return (
     <Canvas
+      frameloop={active ? "always" : "never"}
       dpr={dpr}
       camera={{ position: [0, 1.7, 5.0], fov: 30, near: 0.1, far: 50 }}
       gl={{ antialias: false, stencil: false, powerPreference: "high-performance" }}
@@ -35,20 +48,25 @@ export default function FlowerScene({ params, wind = defaultWindConfig, onStats 
 
       <Lights params={params} />
 
+      {/* Peony-гоос өмнө: useFrame нь түрүүлж бүртгэгдэж bloom-ийг тухайн кадрт шинэчилнэ */}
+      {scrollDriven && <ScrollRig bloomRef={bloom} reducedMotion={reducedMotion} />}
+
       <group position-y={0.2}>
-        <Peony params={params} wind={wind} reducedMotion={reducedMotion} />
+        <Peony params={params} wind={wind} reducedMotion={reducedMotion} bloom={scrollDriven ? bloom : undefined} />
       </group>
 
-      <OrbitControls
-        makeDefault
-        target={[0, -0.15, 0]}
-        enablePan={false}
-        enableDamping
-        minDistance={2.2}
-        maxDistance={10}
-        autoRotate={params.autoRotate && !reducedMotion}
-        autoRotateSpeed={0.6}
-      />
+      {!scrollDriven && (
+        <OrbitControls
+          makeDefault
+          target={[0, -0.15, 0]}
+          enablePan={false}
+          enableDamping
+          minDistance={2.2}
+          maxDistance={10}
+          autoRotate={params.autoRotate && !reducedMotion}
+          autoRotateSpeed={0.6}
+        />
+      )}
 
       <EffectComposer multisampling={4}>
         <Bloom

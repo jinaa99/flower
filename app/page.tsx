@@ -1,23 +1,31 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { getFlower } from "@/lib/data";
+import { formatPrice } from "@/lib/utils";
+import { HomeHero } from "./HomeHero";
 
-// Нүүр хуудас — scroll-driven 3D туршлага энд орно (components/three-оос dynamic import).
+// Нүүр хуудас — scroll-driven 3D туршлага: ард нь fixed Canvas, урд нь HTML хэсгүүд.
 export default function Home() {
+  const peony = getFlower("peony");
+  if (!peony) notFound();
+
   return (
     <>
-      <section className="relative flex min-h-dvh items-center">
+      <HomeHero href={`/flowers/${peony.slug}`} price={formatPrice(peony.price)} />
+
+      {/* Hero-гийн дараах хэсгүүд Canvas-ийг дэвсгэрээрээ халхална */}
+      <section className="relative z-10 flex min-h-dvh items-center bg-plum-950">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_60%_40%,var(--color-plum-800),transparent_65%)]"
         />
         <div className="relative mx-auto w-full max-w-7xl px-4 sm:px-8">
-          <p className="mb-6 text-xs tracking-[0.3em] text-gold-soft uppercase">
-            Botanical atelier
-          </p>
-          <h1 className="font-display text-6xl leading-[0.95] font-light sm:text-8xl lg:text-9xl">
+          <p className="mb-6 text-xs tracking-[0.3em] text-gold-soft uppercase">Botanical atelier</p>
+          <h2 className="font-display text-6xl leading-[0.95] font-light sm:text-8xl lg:text-9xl">
             Цэцэг бүр
             <br />
             <em className="text-blush-300">түүхтэй</em>
-          </h1>
+          </h2>
           <p className="mt-8 max-w-md text-lg text-ivory/60">
             Гараар сонгосон тансаг цэцэг, таны мэдрэмжинд зориулсан баглаа.
           </p>
@@ -28,10 +36,6 @@ export default function Home() {
             Каталог үзэх
           </Link>
         </div>
-      </section>
-      {/* Scroll-ийн урт — 3D дүр зураг scroll-оор хөдөлнө */}
-      <section className="flex min-h-dvh items-center justify-center">
-        <p className="font-display text-4xl text-ivory/30 italic">Удахгүй…</p>
       </section>
     </>
   );
