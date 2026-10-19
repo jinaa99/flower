@@ -9,14 +9,16 @@ import { useReducedMotion } from "@/lib/useReducedMotion";
 import { Backdrop } from "./Backdrop";
 import type { FlowerParams } from "./params";
 import { Peony } from "./Peony";
+import { defaultWindConfig, type WindConfig } from "./wind";
 
 type Props = {
   params: FlowerParams;
+  wind?: WindConfig;
   /** 0.5 сек тутам FPS-ийн текстийг дамжуулна (lab) — React state-гүйгээр DOM-д бичихэд */
   onStats?: (text: string) => void;
 };
 
-export default function FlowerScene({ params, onStats }: Props) {
+export default function FlowerScene({ params, wind = defaultWindConfig, onStats }: Props) {
   const reducedMotion = useReducedMotion();
   const [dpr, setDpr] = useState(1.75);
 
@@ -34,7 +36,7 @@ export default function FlowerScene({ params, onStats }: Props) {
       <Lights params={params} />
 
       <group position-y={0.2}>
-        <Peony params={params} reducedMotion={reducedMotion} />
+        <Peony params={params} wind={wind} reducedMotion={reducedMotion} />
       </group>
 
       <OrbitControls

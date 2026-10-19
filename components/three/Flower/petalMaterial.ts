@@ -1,13 +1,15 @@
 "use client";
 
 import * as THREE from "three";
+import { createWindUniforms, windVertexPars } from "./wind";
 
 /**
  * Дэлбээ / sepal / навчны нэгдсэн material.
  *
  * MeshPhysicalMaterial (sheen, PBR гэрэл, environment)-ийг onBeforeCompile-аар өргөтгөнө:
  * - vertex: PlaneGeometry-ийн uv-ээс дэлбээний хэлбэрийг гаргана (outline, cup, curl, ruffle),
- *   normal-ыг finite difference-ээр тооцно.
+ *   normal-ыг finite difference-ээр тооцно. Салхины нугаралт + flutter (wind.ts) мөн
+ *   petalShape дотор орох тул normal нь хөдөлгөөнийг дагана.
  * - fragment: ёроол → үзүүр өнгөний gradient, судал, ёроолын сүүдэр, ар талын гэрлийн
  *   нэвтрэлт (thin-surface translucency).
  *
@@ -72,6 +74,7 @@ export function createSharedPetalUniforms() {
   return {
     uTranslucency: { value: 0.9 },
     uVeins: { value: 0.55 },
+    ...createWindUniforms(),
   };
 }
 export type SharedPetalUniforms = ReturnType<typeof createSharedPetalUniforms>;
@@ -84,6 +87,9 @@ function createOwnUniforms(palette: PetalPalette, seed: number) {
     uCurl: { value: 0 },
     uRuffle: { value: 0.5 },
     uAO: { value: 0 },
+    /** Spring-ийн үзүүрийн хазайлт (x: хажуу, y: дотор/гадагш) — wind.ts stepFlap */
+    uSway: { value: new THREE.Vector2() },
+    uFlutter: { value: 0 },
     uSeed: { value: seed },
     uShape: { value: palette.shape },
     uBaseColor: { value: palette.base },
@@ -97,6 +103,9 @@ function createOwnUniforms(palette: PetalPalette, seed: number) {
 export type PetalUniforms = ReturnType<typeof createOwnUniforms>;
 
 const vertexPars = /* glsl */ `
+${windVertexPars}
+uniform vec2 uSway;
+uniform float uFlutter;
 uniform float uLength;
 uniform float uWidth;
 uniform float uCup;
@@ -147,7 +156,15 @@ vec3 petalShape(vec2 st) {
     sy += bend;
   }
   vec3 nrm = vec3(0.0, sin(a), cos(a));
-  return vec3(cx, sy, sz) + nrm * (cz + rz);
+
+  // Салхи: ёроол тогтвортой, үзүүр рүү v^n жинтэй. Spring-ийн хазайлт (CPU) +
+  // дэлбээгээр урсах 2 давтамжтай flutter (GPU), ирмэг нь илүү чичирнэ.
+  float ww = pow(v, uBendWeight);
+  float fl = windNoise(vec3(xn * 0.9 + uSeed * 17.0, v * 1.6 - uWindTime * 1.3, uWindTime * 0.4 + uSeed * 5.0)) * 0.7
+           + windNoise(vec3(xn * 2.3 - uSeed * 9.0, v * 3.1 - uWindTime * 2.1, uWindTime * 0.7)) * 0.3;
+  float flap = uSway.y * ww + fl * uFlutter * uWindStrength * ww * (0.6 + 0.4 * abs(xn)) * L * 0.08;
+
+  return vec3(cx + uSway.x * ww, sy, sz) + nrm * (cz + rz + flap);
 }
 `;
 
