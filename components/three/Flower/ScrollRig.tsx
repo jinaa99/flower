@@ -16,20 +16,23 @@ const TARGET = new THREE.Vector3(0, 0.2, 0);
 const ORBIT = {
   azimuth: [-0.55, 0.4],
   elevation: [0.36, 0.22],
-  distance: [6.6, 5.7],
+  distance: [5.5, 5.2],
 } as const;
 
 const DIVE = { fov: 40, near: 0.04 } as const;
 /** Гарц: камер шинэ ертөнцөд энэ үржвэртэй зайнаас, бага зэрэг эргэлдэн ойртож ирнэ */
 const EMERGE = { distance: 1.8, azimuth: -0.6 } as const;
 
+/** Эхний цэцэг hero-д хагас дэлгэрсэн байдлаас эхэлнэ (бусад нь нахиагаар гарч ирнэ) */
+const INTRO_BLOOM = 0.38;
+
 /** Damping-ийн хурд (1/сек) — их байх тусам scroll-ийг ойр дагана */
 const DAMPING = 3.2;
 /** Нарийн (босоо) дэлгэцэнд дэлбээлсэн толгой өргөнөөрөө багтахаар камерыг холдуулна */
 const FIT_ASPECT = 0.85;
 /** Цэцгийг гарчгаас холдуулах view offset (дэлгэцийн хувь) */
-const OFFSET_LANDSCAPE = 0.14;
-const OFFSET_PORTRAIT = 0.16;
+const OFFSET_LANDSCAPE = 0.2;
+const OFFSET_PORTRAIT = 0.22;
 
 const _target = new THREE.Vector3();
 const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
@@ -128,7 +131,8 @@ export function ScrollRig({ specs, journey, blooms, foci, groups, onStage, reduc
     const emerge = exiting ? easeOutCubic(rig.exit) : 1;
 
     writeJourney(journey, stage, shown, rig.dissolve, exiting ? rig.exit : 0);
-    writeBlooms(blooms, stage, exiting ? 1 : clamp01((P - stage) / STAGE.bloomEnd));
+    const local = clamp01((P - stage) / STAGE.bloomEnd);
+    writeBlooms(blooms, stage, exiting ? 1 : stage === 0 ? lerp(INTRO_BLOOM, 1, local) : local);
     placeFlowers(groups.current, shown, emerge);
 
     // Камер: гарцын үед шинэ шатны эхлэлийн байрлал, холоос эргэлдэн ойртоно

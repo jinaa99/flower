@@ -1,6 +1,6 @@
 @AGENTS.md
 
-# Flower — premium цэцгийн e-commerce
+# Saran — premium цэцгийн e-commerce
 
 Scroll-driven 3D туршлагатай, premium botanical уур амьсгалтай цэцгийн онлайн дэлгүүр.
 
@@ -15,7 +15,8 @@ Scroll-driven 3D туршлагатай, premium botanical уур амьсгал
   - Display: **Cormorant Garamond** → `font-display` (Fraunces кирилл дэмждэггүй тул сонгоогүй)
   - Body: **Manrope** → `font-sans` (default)
 
-Командууд: `npm run dev`, `npm run build`, `npm run lint`, `npm run images:fetch` (Unsplash, `.env.local`-д `UNSPLASH_ACCESS_KEY`).
+Командууд: `npm run dev`, `npm run build`, `npm run lint`, `npm run images:fetch` (Unsplash, `.env.local`-д `UNSPLASH_ACCESS_KEY`),
+`npm run images:depth` (зурагнаас depth map — Depth Anything V2, `public/images/depth/` + `data/flowerDepth.ts`).
 DB: `npm run db:start` (локал `prisma dev`), `db:migrate`, `db:seed` (байхгүйг нэмнэ), `db:seed:reset` (каталогийг файлаар дарна), `db:studio`. Хувьсагчид: `.env.example`.
 
 ## Design tokens
@@ -31,7 +32,12 @@ Tailwind v4-д `tailwind.config` байхгүй — token-ууд `app/globals.cs
 | `ivory`      | `#F8F3EC` | Үндсэн текст                     |
 | `gold-soft`  | `#C9A87C` | Үнэ, CTA, нарийн шугам           |
 
-Бусад: `--header-height`, `--ease-bloom` (`ease-bloom`).
+Бусад: `blush-500` (`#D9577E`, гэрэлтэлт), `--header-height`, `--ease-bloom` (`ease-bloom`), `shadow-glow` / `shadow-glow-lg`.
+
+**Utility (`globals.css`, `@utility`):** `btn-primary` (blush pill CTA), `btn-ghost` (хүрээтэй pill), `glass` (шилэн панель),
+`eyebrow` (uppercase + араас шугам). Шинэ товч, eyebrow-д эдгээрийг ашиглана — class-ыг дахин бүү бич.
+
+**Брэнд:** нэр, tagline нь `lib/brand.ts`-д (Saran / Саран); logo — `components/ui/Logo.tsx`, favicon — `app/icon.svg`.
 
 **Уур амьсгал:** premium botanical — харанхуй plum дэвсгэр, зөөлөн гэрэл, их зай (whitespace), том serif гарчиг (`font-light`), жижиг uppercase tracking-тэй eyebrow текст.
 
@@ -51,8 +57,9 @@ app/
 prisma/                   # schema.prisma (Flower, Variant, DeliverySlot, Order, OrderItem), migrations/, seed.ts
 proxy.ts                  # /admin → нэвтрээгүй бол /admin/login (зөвхөн UX — жинхэнэ шалгалт requireAdmin)
 components/
-  three/                  # 3D бүх зүйл (Canvas, mesh, shader, postprocessing)
-  ui/                     # Header, PageShell, SmoothScroll, бусад UI
+  three/                  # 3D бүх зүйл (Canvas, mesh, shader, postprocessing; Atmosphere — bokeh, тоосонцор)
+  home/                   # нүүрний хэсгүүд (Цэцгийн хэл, Цуглуулга, Онцлох цэцэг, Баглаа CTA, Хүргэлт)
+  ui/                     # Header, Footer, Logo, DepthPhoto (2.5D), PageShell, SmoothScroll, бусад UI
 lib/                      # data.ts (DB getter, "use cache" + cacheTag), db.ts (Prisma client), store.ts (zustand),
                           # utils.ts, cart.ts (мөр/дүн), orders.ts (transaction: нөөц хасах, завсрын багтаамж),
                           # adminAuth.ts / adminSession.ts (HMAC cookie, requireAdmin), orderStatus.ts
@@ -85,5 +92,6 @@ public/images/
 `data/flowerSpecs.ts`-д `FlowerSpec` нэмж `data/journey.ts`-д холбоно. Хэлбэрийг `/lab`-д тааруулна.
 
 - `data/` дахь файлууд script-ээс Node-оор шууд импортлогдоно: зөвхөн relative `.ts` импорт, `@/` alias-гүй, төрөл `import type`.
+- 2.5D зураг: `DepthPhoto` (raw WebGL, three-гүй) + `getDepthMap(slug, i)`. Шинэ зурагт `npm run images:depth`.
 - Unsplash зураг: сайт `images.unsplash.com`-ийг hotlink хийнэ (`FlowerPhoto` / `unsplashLoader`, Next optimizer-ээр биш),
   харуулсан газар бүрт `PhotoCredit` attribution. Local хуулбар (`local`) зөвхөн хөгжүүлэлтэд.

@@ -6,6 +6,7 @@
 @theme {
   --color-plum-950: #1e0f1a;
   --color-plum-800: #3a1c30;
+  --color-blush-500: #d9577e;
   --color-blush-300: #e8b4bc;
   --color-blush-100: #f6dde0;
   --color-ivory: #f8f3ec;
@@ -15,6 +16,36 @@
   --font-sans: var(--font-manrope), system-ui, sans-serif;
 
   --ease-bloom: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Зөөлөн гэрэлтэлт — CTA, logo, онцолсон карт */
+  --shadow-glow: 0 0 48px -10px rgb(232 180 188 / 0.55);
+  --shadow-glow-lg: 0 0 90px -20px rgb(217 87 126 / 0.55);
+
+  /* Цэцгийн хэлний хэсэг: дэлбээ хөвөх, тоосонцор анивчих */
+  --animate-float: float 9s ease-in-out infinite;
+  --animate-twinkle: twinkle 3.6s ease-in-out infinite;
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) rotate(var(--float-rotate, 0deg));
+    }
+    50% {
+      transform: translate3d(0, var(--float-y, -14px), 0) rotate(calc(var(--float-rotate, 0deg) + 3deg));
+    }
+  }
+
+  @keyframes twinkle {
+    0%,
+    100% {
+      opacity: 0.25;
+      transform: scale(0.7);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
 
   /* Нүүрний «Доош гүйлгэ» индикаторын гулсах шугам */
   --animate-scroll-hint: scroll-hint 2.4s var(--ease-bloom) infinite;
@@ -48,6 +79,28 @@ body {
   background: var(--color-plum-950);
   color: var(--color-ivory);
   font-family: var(--font-sans);
+}
+
+/* ───── Товч, панель — premium botanical ───── */
+
+/* Үндсэн CTA: blush pill, зөөлөн гэрэлтэлттэй */
+@utility btn-primary {
+  @apply inline-flex items-center justify-center gap-3 rounded-full bg-blush-100 px-7 py-3.5 text-sm font-medium tracking-[0.02em] text-plum-950 shadow-glow transition-all duration-500 ease-bloom hover:bg-ivory hover:shadow-glow-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blush-300 disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+/* Хоёрдогч: нимгэн хүрээтэй pill */
+@utility btn-ghost {
+  @apply inline-flex items-center justify-center gap-3 rounded-full border border-ivory/25 px-7 py-3.5 text-sm tracking-[0.02em] text-ivory transition-all duration-500 ease-bloom hover:border-blush-100/70 hover:bg-ivory/[0.04] hover:text-blush-100 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blush-300;
+}
+
+/* Шилэн панель: бүдэг plum + blur + нарийн хүрээ */
+@utility glass {
+  @apply border border-ivory/10 bg-plum-950/45 backdrop-blur-xl;
+}
+
+/* Жижиг uppercase eyebrow + араас нь нарийн шугам */
+@utility eyebrow {
+  @apply flex items-center gap-4 text-[0.68rem] tracking-[0.38em] text-gold-soft uppercase after:h-px after:w-14 after:bg-gold-soft/40;
 }
 
 ::selection {

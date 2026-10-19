@@ -38,9 +38,14 @@ export function ProductCard({ flower, stage, count, cover, className, ...rest }:
   return (
     <article
       {...rest}
-      className={cn("w-full max-w-md border border-gold-soft/20 bg-plum-950/55 p-8 backdrop-blur-md sm:p-10", className)}
+      className={cn(
+        "glass relative w-full max-w-md overflow-hidden rounded-[2rem] p-8 shadow-glow-lg sm:p-10",
+        // Дээд ирмэгийн нарийн гэрэл
+        "before:absolute before:inset-x-10 before:top-0 before:h-px before:bg-linear-to-r before:from-transparent before:via-blush-100/50 before:to-transparent",
+        className,
+      )}
     >
-      <p className="mb-6 text-xs tracking-[0.3em] text-gold-soft uppercase tabular-nums">
+      <p className="eyebrow mb-6 tabular-nums">
         {pad(stage + 1)} / {pad(count)}
       </p>
       <h2 className="font-display text-5xl leading-none font-light sm:text-6xl">{flower.nameMn}</h2>
@@ -53,23 +58,20 @@ export function ProductCard({ flower, stage, count, cover, className, ...rest }:
         </span>
       </p>
 
-      <div className="mt-8 flex flex-wrap gap-4">
-        <Link
-          href={`/flowers/${flower.slug}`}
-          className="inline-block border border-gold-soft/50 px-6 py-3.5 text-xs tracking-[0.2em] text-gold-soft uppercase transition-colors duration-500 hover:bg-gold-soft/10"
-        >
-          Дэлгэрэнгүй
-        </Link>
+      <div className="mt-8 flex flex-wrap gap-3">
         <button
           type="button"
           onClick={() => {
             add(flower.slug, smallest.size);
             setAdded(true);
           }}
-          className="inline-block bg-gold-soft px-6 py-3.5 text-xs tracking-[0.2em] text-plum-950 uppercase transition-colors duration-500 hover:bg-blush-100"
+          className="btn-primary"
         >
           {added ? "Нэмэгдлээ ✓" : "Сагсанд нэмэх"}
         </button>
+        <Link href={`/flowers/${flower.slug}`} className="btn-ghost">
+          Дэлгэрэнгүй <span aria-hidden>→</span>
+        </Link>
       </div>
       {cover && <PhotoCredit image={cover} className="mt-6" />}
       <p aria-live="polite" className="sr-only">

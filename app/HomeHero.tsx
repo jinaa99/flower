@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -11,7 +12,7 @@ import { ProductCard } from "@/components/ui/ProductCard";
 import { SceneBoundary } from "@/components/ui/SceneBoundary";
 import type { StoryBeat } from "@/data/journey";
 import type { JourneyFlower } from "@/lib/data";
-import { journeyLength, scrollMotion, STAGE } from "@/lib/scrollMotion";
+import { journeyLength, scrollMotion, smoothScroll, STAGE } from "@/lib/scrollMotion";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { cn } from "@/lib/utils";
 import { HomeStatic } from "./HomeStatic";
@@ -64,6 +65,7 @@ export function HomeHero({ stops }: Props) {
  */
 function Journey({ stops, onFail }: Props & { onFail: () => void }) {
   const section = useRef<HTMLElement>(null);
+  const steps = useRef<HTMLOListElement>(null);
   const [active, setActive] = useState(true);
   const reducedMotion = useReducedMotion();
   const [start3D, setStart3D] = useState(false);
@@ -122,6 +124,7 @@ function Journey({ stops, onFail }: Props & { onFail: () => void }) {
           scrub: true,
           onUpdate: (self) => {
             scrollMotion.hero = self.progress;
+            markStep(steps.current, Math.min(Math.floor(self.progress * total), n - 1));
           },
         },
       });
@@ -152,6 +155,7 @@ function Journey({ stops, onFail }: Props & { onFail: () => void }) {
       tl.set({}, {}, total);
 
       scrollMotion.hero = tl.scrollTrigger?.progress ?? 0;
+      markStep(steps.current, Math.min(Math.floor(scrollMotion.hero * total), n - 1));
     });
 
     return () => {
@@ -160,6 +164,17 @@ function Journey({ stops, onFail }: Props & { onFail: () => void }) {
       scrollMotion.hero = 0;
     };
   }, [stops, total]);
+
+  /** Аяллын P цэг рүү зөөлөн гүйлгэнэ (шатны индикатор, «Түүхийг үзэх») */
+  const jumpTo = useCallback(
+    (P: number) => {
+      const el = section.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top + window.scrollY;
+      smoothScroll.to(top + (P / total) * (el.offsetHeight - window.innerHeight));
+    },
+    [total],
+  );
 
   return (
     <div data-home="journey" className="motion-reduce:hidden">
@@ -202,7 +217,14 @@ function Journey({ stops, onFail }: Props & { onFail: () => void }) {
             {stops.map(({ flower, story, cover }, i) => (
               <Fragment key={flower.slug}>
                 {story.map((beat, j) => (
-                  <Beat key={j} stage={i} beat={beat} first={i === 0 && j === 0} />
+                  <Beat
+                    key={j}
+                    stage={i}
+                    beat={beat}
+                    first={i === 0 && j === 0}
+                    // Эхний цэцгийн дараагийн гарчиг руу
+                    onStory={() => jumpTo(STAGE.diveStart / story.length + 0.01)}
+                  />
                 ))}
                 {/* Dissolve дууссаны дараа л GSAP харуулна */}
                 <ProductCard
@@ -218,25 +240,64 @@ function Journey({ stops, onFail }: Props & { onFail: () => void }) {
             ))}
           </div>
 
+          {/* Зүүн ирмэгийн босоо «Гүйлгэх» шугам (reference: scroll indicator) */}
           <div
             data-scroll-hint
-            className="pointer-events-none absolute inset-x-0 bottom-8 mx-auto flex max-w-7xl flex-col items-center gap-3 px-4 text-[0.65rem] tracking-[0.35em] text-ivory/55 uppercase sm:px-8 landscape:items-start"
+            aria-hidden
+            className="pointer-events-none absolute bottom-10 left-5 hidden flex-col items-center gap-4 text-[0.6rem] tracking-[0.4em] text-ivory/50 uppercase sm:flex xl:left-8"
           >
-            <span>Доош гүйлгэ</span>
-            <span aria-hidden className="relative h-10 w-px overflow-hidden bg-ivory/15">
+            <span className="[writing-mode:vertical-rl]">Гүйлгэх</span>
+            <span className="relative h-16 w-px overflow-hidden bg-ivory/15">
               <span className="absolute inset-x-0 top-0 h-1/2 animate-scroll-hint bg-gold-soft" />
             </span>
+            <span className="size-1.5 rounded-full bg-blush-300 shadow-glow" />
           </div>
+
+          {/* Шатны индикатор: 01 02 03 04 — дарвал тухайн цэцэг рүү гүйлгэнэ */}
+          <nav
+            aria-label="Цэцгийн аялал"
+            className="absolute right-4 bottom-8 sm:right-8 lg:right-[max(2rem,calc((100vw-80rem)/2+2rem))]"
+          >
+            <ol ref={steps} className="flex gap-6 text-xs tracking-[0.2em] tabular-nums">
+              {stops.map(({ flower }, i) => (
+                <li key={flower.slug}>
+                  <button
+                    type="button"
+                    onClick={() => jumpTo(i === 0 ? 0 : i - 1 + STAGE.exitStart + 0.08)}
+                    aria-label={`${pad(i + 1)} — ${flower.nameMn}`}
+                    className="group relative pb-3 text-ivory/40 transition-colors duration-500 hover:text-ivory/80 data-active:text-ivory"
+                  >
+                    {pad(i + 1)}
+                    <span
+                      aria-hidden
+                      className="absolute inset-x-0 bottom-0 h-px origin-left scale-x-0 bg-blush-100 transition-transform duration-700 ease-bloom group-data-active:scale-x-100"
+                    />
+                  </button>
+                </li>
+              ))}
+            </ol>
+          </nav>
         </div>
       </section>
     </div>
   );
 }
 
-const titleClass = "font-display text-5xl leading-[0.95] font-light text-balance sm:text-7xl lg:text-8xl";
-const bodyClass = "mt-8 max-w-md text-lg text-ivory/60";
+const titleClass = "font-display text-5xl leading-[0.95] font-light text-balance sm:text-7xl lg:text-[5.75rem]";
+const bodyClass = "mt-8 max-w-md text-lg leading-relaxed text-ivory/65";
 
-function Beat({ stage, beat, first }: { stage: number; beat: StoryBeat; first: boolean }) {
+const pad = (n: number) => String(n).padStart(2, "0");
+
+/** Идэвхтэй шатны товчинд data-active (React state-гүй — scroll бүрт re-render хийхгүй) */
+function markStep(list: HTMLOListElement | null, stage: number) {
+  list?.querySelectorAll("button").forEach((b, i) => {
+    b.toggleAttribute("data-active", i === stage);
+    if (i === stage) b.setAttribute("aria-current", "step");
+    else b.removeAttribute("aria-current");
+  });
+}
+
+function Beat({ stage, beat, first, onStory }: { stage: number; beat: StoryBeat; first: boolean; onStory: () => void }) {
   const [before, em, after] = beat.title;
   const Heading = first ? "h1" : "h2";
   return (
@@ -245,18 +306,33 @@ function Beat({ stage, beat, first }: { stage: number; beat: StoryBeat; first: b
       data-stage={stage}
       className={cn(
         // Бүгд нэг grid нүдэнд давхцаж, scroll-оор солигдоно
-        "max-w-2xl [grid-area:1/1]",
+        "max-w-2xl [grid-area:1/1] landscape:max-w-xl",
         // Эхний гарчгаас бусад нь JS ачаалахаас өмнө ч нуугдсан байна (GSAP autoAlpha-аар сольно)
         !first && "invisible opacity-0",
       )}
     >
-      <p className="mb-6 text-xs tracking-[0.3em] text-gold-soft uppercase">{beat.eyebrow}</p>
+      <p className="eyebrow mb-8">{beat.eyebrow}</p>
       <Heading className={titleClass}>
         {before}
-        <em className="text-blush-300">{em}</em>
+        <em className="text-blush-300 [text-shadow:0_0_40px_rgb(232_180_188/0.35)]">{em}</em>
         {after}
       </Heading>
       <p className={bodyClass}>{beat.body}</p>
+      {first && (
+        <div className="mt-12 flex flex-wrap items-center gap-6">
+          <Link href="/catalog" className="btn-primary">
+            Цэцэг үзэх <span aria-hidden>→</span>
+          </Link>
+          <button type="button" onClick={onStory} className="group flex items-center gap-4 text-sm text-ivory/85">
+            <span className="flex size-12 items-center justify-center rounded-full border border-ivory/30 transition-colors duration-500 group-hover:border-blush-100 group-hover:text-blush-100">
+              <svg aria-hidden viewBox="0 0 12 12" className="ml-0.5 size-3 fill-current">
+                <path d="M2 1.2v9.6L10.5 6z" />
+              </svg>
+            </span>
+            Түүхийг үзэх
+          </button>
+        </div>
+      )}
     </div>
   );
 }

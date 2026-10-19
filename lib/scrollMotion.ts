@@ -6,6 +6,11 @@
  */
 export const scrollMotion = { velocity: 0, simulated: 0, hero: 0 };
 
+/** Lenis асаалттай бол түүгээр, үгүй бол native-аар зөөлөн гүйлгэнэ (SmoothScroll бүртгэнэ) */
+export const smoothScroll: { to: (y: number) => void } = {
+  to: (y) => window.scrollTo({ top: y, behavior: "smooth" }),
+};
+
 export const getScrollVelocity = () => scrollMotion.velocity + scrollMotion.simulated;
 
 /**

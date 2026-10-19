@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import { brand } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: { template: "%s · Admin · Flower", default: "Admin · Flower" },
+  title: { template: `%s · Admin · ${brand.name}`, default: `Admin · ${brand.name}` },
   robots: { index: false, follow: false },
 };
 

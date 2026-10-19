@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import Lenis from "lenis";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { scrollMotion } from "@/lib/scrollMotion";
+import { scrollMotion, smoothScroll } from "@/lib/scrollMotion";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -26,6 +26,8 @@ export function SmoothScroll() {
     const start = () => {
       lenis = new Lenis({ lerp: 0.1, smoothWheel: true });
       lenis.on("scroll", ScrollTrigger.update);
+      const instance = lenis;
+      smoothScroll.to = (y) => instance.scrollTo(y, { duration: 2.4, easing: (t) => 1 - (1 - t) ** 4 });
       gsap.ticker.add(tick);
       gsap.ticker.lagSmoothing(0);
     };
@@ -34,6 +36,7 @@ export function SmoothScroll() {
       gsap.ticker.remove(tick);
       lenis?.destroy();
       lenis = null;
+      smoothScroll.to = (y) => window.scrollTo({ top: y, behavior: "smooth" });
       scrollMotion.velocity = 0;
     };
 

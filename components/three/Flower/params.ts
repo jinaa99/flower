@@ -17,6 +17,15 @@ export type FlowerParams = {
   sheen: number;
   translucency: number;
   veins: number;
+  /** Ethereal: ирмэг + Fresnel гэрэлтэлт */
+  edgeGlow: number;
+  /** Дэлбээний ёроолын дотоод гэрэл */
+  heartGlow: number;
+  /** Шүүдрийн дуслын нягтрал */
+  dew: number;
+  // Агаар мандал: bokeh, гэрлийн тоосонцор
+  bokeh: number;
+  sparkles: number;
   // Гэрэл — spec.world × үржвэр
   keyIntensity: number;
   rimIntensity: number;
@@ -39,13 +48,18 @@ export const defaultFlowerParams: FlowerParams = {
   sheen: 0.35,
   translucency: 0.55,
   veins: 0.55,
+  edgeGlow: 0.5,
+  heartGlow: 0.75,
+  dew: 0.24,
+  bokeh: 1,
+  sparkles: 1,
   keyIntensity: 1,
   rimIntensity: 1,
   envIntensity: 1,
-  glow: 0.35,
-  glowThreshold: 0.8,
+  glow: 0.95,
+  glowThreshold: 0.72,
   vignette: 0.55,
-  grain: 0.16,
+  grain: 0.07,
   autoRotate: false,
 };
 
@@ -77,6 +91,16 @@ export const paramGroups: { title: string; controls: ParamControl[] }[] = [
       { key: "sheen", label: "Sheen", min: 0.05, max: 1, step: 0.01 },
       { key: "translucency", label: "Гэрэл нэвтрэлт", min: 0, max: 2, step: 0.01 },
       { key: "veins", label: "Судал", min: 0, max: 1, step: 0.01 },
+      { key: "edgeGlow", label: "Ирмэгийн гэрэл", min: 0, max: 2, step: 0.01 },
+      { key: "heartGlow", label: "Дотоод гэрэл", min: 0, max: 2, step: 0.01 },
+      { key: "dew", label: "Шүүдэр", min: 0, max: 0.8, step: 0.01 },
+    ],
+  },
+  {
+    title: "Агаар мандал",
+    controls: [
+      { key: "bokeh", label: "Bokeh ×", min: 0, max: 2, step: 0.01 },
+      { key: "sparkles", label: "Тоосонцор ×", min: 0, max: 2, step: 0.01 },
     ],
   },
   {

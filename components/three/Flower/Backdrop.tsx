@@ -29,10 +29,22 @@ export function Backdrop({ inner, outer }: Props) {
         uniform vec3 uInner;
         uniform vec3 uOuter;
         varying vec2 vUv;
+        float hash(vec2 p) {
+          return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+        }
         void main() {
-          float d = length((vUv - vec2(0.55, 0.6)) * vec2(1.0, 1.15));
-          float glow = 1.0 - smoothstep(0.0, 0.75, d);
-          gl_FragColor = vec4(mix(uOuter, uInner, glow * glow), 1.0);
+          // Цэцгийн ард (баруун дээд) өргөн зөөлөн гэрэл + жижиг халуун цөм
+          vec2 p = (vUv - vec2(0.6, 0.58)) * vec2(1.0, 1.15);
+          float d = length(p);
+          float glow = 1.0 - smoothstep(0.0, 0.85, d);
+          vec3 col = mix(uOuter, uInner, glow * glow);
+          col += uInner * 1.1 * exp(-d * d * 10.0);
+          // Зүүн доод буланд бүдэг хоёрдогч гэрэл — гүн мэдрэмж
+          float d2 = length((vUv - vec2(0.08, 0.1)) * vec2(1.0, 1.3));
+          col += uInner * 0.35 * exp(-d2 * d2 * 7.0);
+          // 8-bit gradient-ийн banding-ийг арилгах dithering
+          col += (hash(gl_FragCoord.xy) - 0.5) / 255.0;
+          gl_FragColor = vec4(col, 1.0);
           #include <colorspace_fragment>
         }
       `,

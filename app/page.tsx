@@ -1,37 +1,65 @@
-import Link from "next/link";
-import { getJourney } from "@/lib/data";
+import { BouquetCta } from "@/components/home/BouquetCta";
+import { CollectionRail } from "@/components/home/CollectionRail";
+import { DeliverySection } from "@/components/home/DeliverySection";
+import { LanguageSection } from "@/components/home/LanguageSection";
+import { Spotlight, type SpotlightData, type SpotlightImage } from "@/components/home/Spotlight";
+import type { Flower } from "@/data/flowers";
+import { toCatalogItem } from "@/lib/catalog";
+import { getCoverImage, getDepthMap, getFlowers, getJourney } from "@/lib/data";
+import { capitalize } from "@/lib/utils";
 import { HomeHero } from "./HomeHero";
 
-// Нүүр хуудас — scroll-driven 3D туршлага: ард нь fixed Canvas, урд нь HTML хэсгүүд.
+/** Онцлох цэцэг, баглааны урилгын зураг (depth map-тай) */
+const SPOTLIGHT = "rose";
+const BOUQUET_IMAGE = { slug: "peony", index: 2 } as const;
+
+// Нүүр хуудас — scroll-driven 3D аялал (ард нь fixed Canvas), дараа нь HTML хэсгүүд.
 export default async function Home() {
+  const [stops, flowers] = await Promise.all([getJourney(), getFlowers()]);
+  const collection = [...flowers]
+    .sort((a, b) => b.popularity - a.popularity)
+    .slice(0, 10)
+    .map((f) => toCatalogItem(f, getCoverImage(f)));
+  const spotlight = flowers.find((f) => f.slug === SPOTLIGHT);
+  const bouquet = flowers.find((f) => f.slug === BOUQUET_IMAGE.slug);
+
   return (
     <>
-      <HomeHero stops={await getJourney()} />
+      <HomeHero stops={stops} />
 
       {/* Hero-гийн дараах хэсгүүд Canvas-ийг дэвсгэрээрээ халхална */}
-      <section className="relative z-10 flex min-h-dvh items-center bg-plum-950">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_60%_40%,var(--color-plum-800),transparent_65%)]"
-        />
-        <div className="relative mx-auto w-full max-w-7xl px-4 sm:px-8">
-          <p className="mb-6 text-xs tracking-[0.3em] text-gold-soft uppercase">Botanical atelier</p>
-          <h2 className="font-display text-6xl leading-[0.95] font-light sm:text-8xl lg:text-9xl">
-            Цэцэг бүр
-            <br />
-            <em className="text-blush-300">түүхтэй</em>
-          </h2>
-          <p className="mt-8 max-w-md text-lg text-ivory/60">
-            Гараар сонгосон тансаг цэцэг, таны мэдрэмжинд зориулсан баглаа.
-          </p>
-          <Link
-            href="/catalog"
-            className="mt-12 inline-block border border-gold-soft/50 px-8 py-4 text-sm tracking-[0.2em] text-gold-soft uppercase transition-colors duration-500 hover:bg-gold-soft hover:text-plum-950"
-          >
-            Каталог үзэх
-          </Link>
-        </div>
-      </section>
+      <div className="relative z-10 bg-plum-950">
+        <LanguageSection />
+        <CollectionRail items={collection} />
+        {spotlight && <Spotlight data={toSpotlight(spotlight)} />}
+        <BouquetCta image={bouquet ? withDepth(bouquet, BOUQUET_IMAGE.index) : null} />
+        <DeliverySection />
+      </div>
     </>
   );
+}
+
+function withDepth(flower: Flower, index: number): SpotlightImage | null {
+  const image = flower.images[index];
+  return image ? { ...image, depth: getDepthMap(flower.slug, index) } : null;
+}
+
+function toSpotlight(flower: Flower): SpotlightData {
+  const [min, max] = flower.care.vaseLifeDays;
+  const smallest = flower.pricing.sizes.reduce((a, b) => (b.price < a.price ? b : a));
+  const cover = getCoverImage(flower);
+  const images = flower.images.map((_, i) => withDepth(flower, i)!);
+  return {
+    slug: flower.slug,
+    nameMn: flower.nameMn,
+    nameEn: flower.nameEn,
+    meaning: flower.meaning,
+    facts: [
+      { label: "Тохиолдол", value: flower.occasions.slice(0, 2).map(capitalize).join(", ") },
+      { label: "Улирал", value: flower.pricing.deliveryNote.split(".")[0] },
+      { label: "Ваазанд", value: `${min}–${max} хоног` },
+    ],
+    smallest,
+    images: images.length ? images : cover ? [{ ...cover, depth: null }] : [],
+  };
 }

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { brand } from "@/lib/brand";
 import type { PaymentMethod } from "@/lib/checkout";
 import { cn, formatPrice } from "@/lib/utils";
 
@@ -10,7 +11,7 @@ import { cn, formatPrice } from "@/lib/utils";
  * «Төлбөр шалгах» нь `/api/orders/[id]/pay`-аар төлөгдсөн гэж тэмдэглэнэ —
  * жинхэнэ интеграцид QPay invoice / callback, банкны хуулга шалгалтаар солигдоно.
  */
-const BANK = { name: "Жишээ банк", account: "0000 0000 00", holder: "Flower ХХК" };
+const BANK = { name: "Жишээ банк", account: "0000 0000 00", holder: brand.company };
 
 export function PaymentPanel({
   orderId,

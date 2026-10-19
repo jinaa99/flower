@@ -197,6 +197,9 @@ function updateMaterial(
 ) {
   shared.uTranslucency.value = p.translucency;
   shared.uVeins.value = p.veins;
+  shared.uGlow.value = p.edgeGlow;
+  shared.uHeart.value = p.heartGlow;
+  shared.uDew.value = p.dew;
   material.sheen = p.sheen;
   uniforms.uFlutter.value = cfg.flutter * 1.4;
 }

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cacheLife, cacheTag } from "next/cache";
+import { flowerDepth } from "@/data/flowerDepth";
 import { flowerImages } from "@/data/flowerImages";
 import type { BouquetSize, Flower, FlowerImage, FlowerSlug } from "@/data/flowers";
 import type { FlowerSpec } from "@/data/flowerSpecs";
@@ -99,6 +100,11 @@ export function getCoverImage(flower: Flower): CoverImage | null {
   if (image) return image;
   const placeholder = placeholders[flower.slug];
   return placeholder ? { ...placeholder, alt: `${flower.nameMn} цэцэг` } : null;
+}
+
+/** Зургийн depth map (2.5D parallax) — `npm run images:depth`; үүсгээгүй бол null */
+export function getDepthMap(slug: string, index: number): string | null {
+  return flowerDepth[slug as FlowerSlug]?.[index] ?? null;
 }
 
 /** 3D загвартай бол (одоогоор нүүрний аяллын цэцгүүд) FlowerSpec, үгүй бол null */

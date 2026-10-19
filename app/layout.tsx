@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Manrope } from "next/font/google";
 import { CartDrawer } from "@/components/ui/CartDrawer";
+import { Footer } from "@/components/ui/Footer";
 import { Header } from "@/components/ui/Header";
 import { SmoothScroll } from "@/components/ui/SmoothScroll";
+import { brand } from "@/lib/brand";
 import { getCartCatalog } from "@/lib/data";
 import "./globals.css";
 
@@ -24,10 +26,10 @@ const manrope = Manrope({
 
 export const metadata: Metadata = {
   title: {
-    default: "Flower — Тансаг цэцгийн дэлгүүр",
-    template: "%s · Flower",
+    default: `${brand.name} — Тансаг цэцгийн ателье`,
+    template: `%s · ${brand.name}`,
   },
-  description: "Гараар сонгосон тансаг цэцэг, баглаа.",
+  description: brand.tagline,
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
@@ -37,6 +39,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <SmoothScroll />
         <Header />
         <main>{children}</main>
+        <Footer />
         <CartDrawer catalog={await getCartCatalog()} />
       </body>
     </html>

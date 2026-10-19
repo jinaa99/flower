@@ -13,6 +13,8 @@ import { createWindUniforms, windVertexPars } from "./wind";
  *   petalShape дотор орох тул normal нь хөдөлгөөнийг дагана.
  * - fragment: ёроол → үзүүр өнгөний gradient, судал, ёроолын сүүдэр, ар талын гэрлийн
  *   нэвтрэлт (thin-surface translucency).
+ * - ethereal давхарга: Fresnel + нимгэн ирмэгийн гэрэлтэлт, ёроолын дотоод гэрэл (bloom-д
+ *   барина), шүүдрийн дусал (cellular noise — normal товойж, гялбаа тусна).
  *
  * Бүх material нэг onBeforeCompile функцтэй тул нэг shader program-ыг хуваалцана —
  * ялгаа нь зөвхөн uniform-д.
@@ -58,6 +60,12 @@ export function createSharedPetalUniforms() {
   return {
     uTranslucency: { value: 0.9 },
     uVeins: { value: 0.55 },
+    /** Ирмэг + Fresnel гэрэлтэлт (emissive) */
+    uGlow: { value: 0 },
+    /** Дэлбээний ёроолын дотоод гэрэл */
+    uHeart: { value: 0 },
+    /** Шүүдрийн дуслын нягтрал (0 = байхгүй) */
+    uDew: { value: 0 },
     ...createWindUniforms(),
   };
 }
@@ -188,11 +196,40 @@ uniform float uVeins;
 uniform float uTranslucency;
 uniform float uAO;
 uniform float uLeaf;
+uniform float uGlow;
+uniform float uHeart;
+uniform float uDew;
 varying vec2 vPetalUv;
 varying float vPetalSeed;
 #ifdef PETAL_DRIFT
 varying float vDriftFade;
 #endif
+
+vec2 dewHash(vec2 p) {
+  p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
+  return fract(sin(p) * 43758.5453);
+}
+
+// Шүүдэр: xy — дуслын төвөөс (радиусаар хэвийнчилсэн) хазайлт, z — дусал дотор эсэх (0–1)
+vec3 dewDrop(vec2 uv, float seed) {
+  vec2 g = uv * vec2(5.0, 8.0) + seed * 31.0;
+  vec2 cell = floor(g);
+  vec2 f = fract(g);
+  vec3 best = vec3(0.0);
+  for (int y = -1; y <= 1; y++) {
+    for (int x = -1; x <= 1; x++) {
+      vec2 o = vec2(float(x), float(y));
+      vec2 h = dewHash(cell + o);
+      // Нүднүүдийн зөвхөн хэсэгт нь дусал — uDew нягтрал
+      if (h.x > uDew) continue;
+      float r = mix(0.16, 0.34, h.y);
+      vec2 d = (o + 0.2 + 0.6 * dewHash(cell + o + 7.3) - f) / r;
+      float inside = 1.0 - smoothstep(0.82, 1.0, length(d));
+      if (inside > best.z) best = vec3(d, inside);
+    }
+  }
+  return best;
+}
 
 float veinLine(float coord, float width) {
   float d = abs(fract(coord) - 0.5);
@@ -226,6 +263,41 @@ diffuseColor.a *= vDriftFade;
 #endif
 `;
 
+// roughnessmap_fragment нь normal-оос өмнө — дуслыг тэнд нэг удаа тооцно
+const fragmentDewRoughness = /* glsl */ `
+vec3 dew = vec3(0.0);
+#ifndef PETAL_DRIFT
+if (uDew > 0.0) dew = dewDrop(vPetalUv, vPetalSeed);
+// Камер дэлбээнд ойртоход (dive) дусал хэт томорч харагдахаас сэргийлж бүдгэрүүлнэ
+dew.z *= smoothstep(0.5, 1.4, length(vViewPosition));
+roughnessFactor = mix(roughnessFactor, 0.04, dew.z);
+#endif
+`;
+
+const fragmentDewNormal = /* glsl */ `
+#ifndef PETAL_DRIFT
+{
+  // uv-ийн тангенс орчин (screen-space derivative) — дуслыг бөмбөлөг мэт товойлгоно.
+  // Derivative-ийг салаалахаас өмнө (uniform control flow)
+  vec3 q0 = dFdx(-vViewPosition);
+  vec3 q1 = dFdy(-vViewPosition);
+  vec2 st0 = dFdx(vPetalUv);
+  vec2 st1 = dFdy(vPetalUv);
+  if (dew.z > 0.0) {
+    vec3 q1perp = cross(q1, normal);
+    vec3 q0perp = cross(normal, q0);
+    vec3 T = q1perp * st0.x + q0perp * st1.x;
+    vec3 B = q1perp * st0.y + q0perp * st1.y;
+    float det = max(dot(T, T), dot(B, B));
+    float sc = det == 0.0 ? 0.0 : inversesqrt(det);
+    vec2 bulge = clamp(dew.xy, -1.0, 1.0);
+    vec3 dropN = normalize(T * sc * bulge.x * 1.6 + B * sc * bulge.y * 1.6 + normal * sqrt(max(1.0 - dot(bulge, bulge), 0.05)));
+    normal = normalize(mix(normal, dropN, dew.z));
+  }
+}
+#endif
+`;
+
 const fragmentTranslucency = /* glsl */ `
 {
   // Нимгэн гадаргуу: ар талаас тусах гэрэл дэлбээгээр нэвтэрч, ирмэг/үзүүр (хамгийн нимгэн) илүү гэрэлтэнэ
@@ -238,8 +310,25 @@ const fragmentTranslucency = /* glsl */ `
     vec3 H = normalize(Ld + geometryNormal * 0.3);
     float fwd = pow(saturate(dot(geometryViewDir, -H)), 4.0);
     reflectedLight.directDiffuse += transAlbedo * directionalLights[i].color * (back * 0.4 + fwd * 0.8);
+    #ifndef PETAL_DRIFT
+    // Шүүдрийн гялбаа: хурц specular — bloom-оор од мэт гэрэлтэнэ
+    if (dew.z > 0.0) {
+      float spark = pow(saturate(dot(reflect(-geometryViewDir, normal), Ld)), 90.0);
+      totalEmissiveRadiance += directionalLights[i].color * spark * dew.z * 3.5;
+    }
+    #endif
   }
   #endif
+
+  // Ethereal: ирмэг (нимгэн) ба Fresnel гэрэлтэлт + ёроолын дотоод гэрэл. Навчинд сул.
+  float leafDim = mix(1.0, 0.18, uLeaf);
+  float fres = pow(1.0 - saturate(abs(dot(geometryNormal, geometryViewDir))), 4.0);
+  float rimEdge = smoothstep(0.7, 1.0, abs(pxn)) * smoothstep(0.15, 0.55, pv) + smoothstep(0.82, 1.0, pv) * 0.6;
+  // Ханасан ягаан туяа (цагаан болж «сүүн» харагдахаас сэргийлнэ)
+  vec3 glowTint = mix(uMidColor, uTransColor, 0.35) * mix(vec3(1.0), uBaseColor / max(uMidColor, vec3(1e-3)), 0.3);
+  totalEmissiveRadiance += glowTint * (fres * 0.9 + rimEdge * 0.45) * uGlow * leafDim;
+  float heart = (1.0 - smoothstep(0.0, 0.42, pv)) * (1.0 - uLeaf);
+  totalEmissiveRadiance += mix(uTransColor, vec3(1.0, 0.86, 0.62), 0.35) * heart * heart * uHeart;
 }
 `;
 
@@ -255,6 +344,8 @@ function onBeforeCompile(this: WithUniforms, shader: THREE.WebGLProgramParameter
   shader.fragmentShader = shader.fragmentShader
     .replace("#include <common>", `#include <common>\n${fragmentPars}`)
     .replace("#include <color_fragment>", `#include <color_fragment>\n${fragmentColor}`)
+    .replace("#include <roughnessmap_fragment>", `#include <roughnessmap_fragment>\n${fragmentDewRoughness}`)
+    .replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>\n${fragmentDewNormal}`)
     .replace("#include <lights_fragment_end>", `#include <lights_fragment_end>\n${fragmentTranslucency}`);
 }
 

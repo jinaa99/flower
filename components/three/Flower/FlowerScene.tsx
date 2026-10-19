@@ -8,6 +8,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import * as THREE from "three";
 import type { FlowerSpec } from "@/data/flowerSpecs";
 import { useReducedMotion } from "@/lib/useReducedMotion";
+import { Atmosphere } from "./Atmosphere";
 import { Flower } from "./Flower";
 import { createJourneyState, type JourneyState } from "./journey";
 import type { FlowerParams } from "./params";
@@ -122,6 +123,14 @@ export default function FlowerScene({
         journey={scrollDriven ? journey : undefined}
         params={params}
         wind={wind}
+        reducedMotion={reducedMotion}
+      />
+
+      <Atmosphere
+        bokeh={quality.bokeh}
+        sparkles={quality.sparkles}
+        bokehIntensity={params.bokeh}
+        sparkleIntensity={params.sparkles}
         reducedMotion={reducedMotion}
       />
 

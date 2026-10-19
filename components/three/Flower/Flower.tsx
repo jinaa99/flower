@@ -322,4 +322,7 @@ function updateSepal(mesh: THREE.Mesh, u: PetalUniforms, S: SepalSpec, progress:
 function updateShared(shared: SharedPetalUniforms, p: FlowerParams) {
   shared.uTranslucency.value = p.translucency;
   shared.uVeins.value = p.veins;
+  shared.uGlow.value = p.edgeGlow;
+  shared.uHeart.value = p.heartGlow;
+  shared.uDew.value = p.dew;
 }

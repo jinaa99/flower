@@ -13,6 +13,9 @@ export type Quality = {
   segments: number;
   /** Урсах дэлбээний pool-ийн хэмжээ */
   drift: number;
+  /** Агаар мандал: bokeh дугуй, гэрлийн тоосонцрын тоо */
+  bokeh: number;
+  sparkles: number;
   multisampling: number;
   bloom: { enabled: boolean; levels: number; resolutionScale: number };
   grain: boolean;
@@ -25,6 +28,8 @@ const TIERS: Record<QualityTier, Quality> = {
     dpr: 1,
     segments: 12,
     drift: 24,
+    bokeh: 18,
+    sparkles: 50,
     multisampling: 0,
     bloom: { enabled: false, levels: 4, resolutionScale: 0.5 },
     grain: false,
@@ -34,6 +39,8 @@ const TIERS: Record<QualityTier, Quality> = {
     dpr: 1.25,
     segments: 16,
     drift: 48,
+    bokeh: 32,
+    sparkles: 100,
     multisampling: 0,
     bloom: { enabled: true, levels: 5, resolutionScale: 0.5 },
     grain: false,
@@ -43,6 +50,8 @@ const TIERS: Record<QualityTier, Quality> = {
     dpr: 1.75,
     segments: 24,
     drift: 72,
+    bokeh: 46,
+    sparkles: 150,
     multisampling: 4,
     bloom: { enabled: true, levels: 8, resolutionScale: 0.5 },
     grain: true,
@@ -51,7 +60,7 @@ const TIERS: Record<QualityTier, Quality> = {
 };
 
 /** Mobile-ийн дээд хязгаар — аль ч түвшинд эдгээрээс давахгүй */
-const MOBILE_CAP = { dpr: 1.5, segments: 16, drift: 36, levels: 5, textureWidth: 1080 } as const;
+const MOBILE_CAP = { dpr: 1.5, segments: 16, drift: 36, bokeh: 26, sparkles: 80, levels: 5, textureWidth: 1080 } as const;
 
 export function isMobileDevice() {
   return window.matchMedia("(pointer: coarse), (max-width: 767px)").matches;
@@ -65,6 +74,8 @@ export function getQuality(tier: QualityTier, mobile: boolean): Quality {
     dpr: Math.min(q.dpr, MOBILE_CAP.dpr, deviceDpr),
     segments: Math.min(q.segments, MOBILE_CAP.segments),
     drift: Math.min(q.drift, MOBILE_CAP.drift),
+    bokeh: Math.min(q.bokeh, MOBILE_CAP.bokeh),
+    sparkles: Math.min(q.sparkles, MOBILE_CAP.sparkles),
     multisampling: 0,
     bloom: { ...q.bloom, levels: Math.min(q.bloom.levels, MOBILE_CAP.levels) },
     grain: false,
