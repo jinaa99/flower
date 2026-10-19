@@ -8,6 +8,7 @@ import { useRef, useState } from "react";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { Backdrop } from "./Backdrop";
 import type { FlowerParams } from "./params";
+import { PetalDrift } from "./PetalDrift";
 import { Peony } from "./Peony";
 import { ScrollRig } from "./ScrollRig";
 import { defaultWindConfig, type WindConfig } from "./wind";
@@ -54,6 +55,9 @@ export default function FlowerScene({
       <group position-y={0.2}>
         <Peony params={params} wind={wind} reducedMotion={reducedMotion} bloom={scrollDriven ? bloom : undefined} />
       </group>
+
+      {/* Peony-гийн дараа: камер (ScrollRig) энэ кадрт байрлалаа авсан байна */}
+      <PetalDrift params={params} wind={wind} reducedMotion={reducedMotion} />
 
       {!scrollDriven && (
         <OrbitControls

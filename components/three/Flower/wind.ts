@@ -147,7 +147,7 @@ function noise1(x: number) {
 }
 
 /** 3 octave — удаан долгион дээр жижиг хэлбэлзэл */
-function fbm1(x: number, seed: number) {
+export function fbm1(x: number, seed: number) {
   return (
     noise1(x + seed * 31.7) * 0.6 + noise1(x * 2.17 + seed * 13.1) * 0.27 + noise1(x * 4.53 + seed * 7.3) * 0.13
   );

@@ -20,8 +20,8 @@ import { createWindUniforms, windVertexPars } from "./wind";
 export const PETAL_SEGMENTS = 24;
 
 /** Бүх дэлбээнд нэг geometry. Байрлалыг shader uv-ээс тооцдог тул plane-ийн хэмжээ хамаагүй. */
-export function createPetalGeometry() {
-  return new THREE.PlaneGeometry(1, 1, PETAL_SEGMENTS, PETAL_SEGMENTS);
+export function createPetalGeometry(segments = PETAL_SEGMENTS) {
+  return new THREE.PlaneGeometry(1, 1, segments, segments);
 }
 
 export type PetalPalette = {
@@ -114,6 +114,13 @@ uniform float uRuffle;
 uniform float uSeed;
 uniform vec3 uShape;
 varying vec2 vPetalUv;
+varying float vPetalSeed;
+// Энгийн дэлбээнд uSeed, урсах дэлбээнд (instanced) instance бүрийн seed
+float petalSeed;
+#ifdef PETAL_DRIFT
+attribute vec2 aDrift; // x: seed, y: fade
+varying float vDriftFade;
+#endif
 
 const float CURL_START = 0.38;
 
@@ -135,7 +142,7 @@ vec3 petalShape(vec2 st) {
 
   // Ruffle: ирмэг болон үзүүрт л долгионтоно
   float edge = max(smoothstep(0.45, 1.0, abs(xn)), smoothstep(0.55, 1.0, v)) * smoothstep(0.1, 0.45, v);
-  float ph = uSeed * 6.2831;
+  float ph = petalSeed * 6.2831;
   float wave = sin(v * 19.0 + xn * 2.0 + ph) * 0.55
              + sin(v * 37.0 - xn * 7.0 + ph * 1.7) * 0.25
              + sin(xn * 21.0 + ph * 2.3) * 0.35 * smoothstep(0.6, 1.0, v);
@@ -160,8 +167,8 @@ vec3 petalShape(vec2 st) {
   // Салхи: ёроол тогтвортой, үзүүр рүү v^n жинтэй. Spring-ийн хазайлт (CPU) +
   // дэлбээгээр урсах 2 давтамжтай flutter (GPU), ирмэг нь илүү чичирнэ.
   float ww = pow(v, uBendWeight);
-  float fl = windNoise(vec3(xn * 0.9 + uSeed * 17.0, v * 1.6 - uWindTime * 1.3, uWindTime * 0.4 + uSeed * 5.0)) * 0.7
-           + windNoise(vec3(xn * 2.3 - uSeed * 9.0, v * 3.1 - uWindTime * 2.1, uWindTime * 0.7)) * 0.3;
+  float fl = windNoise(vec3(xn * 0.9 + petalSeed * 17.0, v * 1.6 - uWindTime * 1.3, uWindTime * 0.4 + petalSeed * 5.0)) * 0.7
+           + windNoise(vec3(xn * 2.3 - petalSeed * 9.0, v * 3.1 - uWindTime * 2.1, uWindTime * 0.7)) * 0.3;
   float flap = uSway.y * ww + fl * uFlutter * uWindStrength * ww * (0.6 + 0.4 * abs(xn)) * L * 0.08;
 
   return vec3(cx + uSway.x * ww, sy, sz) + nrm * (cz + rz + flap);
@@ -169,6 +176,13 @@ vec3 petalShape(vec2 st) {
 `;
 
 const vertexNormal = /* glsl */ `
+#ifdef PETAL_DRIFT
+petalSeed = aDrift.x;
+vDriftFade = aDrift.y;
+#else
+petalSeed = uSeed;
+#endif
+vPetalSeed = petalSeed;
 vec3 petalPos = petalShape(uv);
 // Үзүүрт өргөн ~0 тул deriv-ийг арай доороос авна
 vec2 uvN = vec2(uv.x, min(uv.y, 0.96));
@@ -188,9 +202,12 @@ uniform vec3 uTransColor;
 uniform float uVeins;
 uniform float uTranslucency;
 uniform float uAO;
-uniform float uSeed;
 uniform float uLeaf;
 varying vec2 vPetalUv;
+varying float vPetalSeed;
+#ifdef PETAL_DRIFT
+varying float vDriftFade;
+#endif
 
 float veinLine(float coord, float width) {
   float d = abs(fract(coord) - 0.5);
@@ -207,7 +224,7 @@ vec3 petalCol = mix(uBaseColor, uMidColor, smoothstep(0.0, 0.4, pv));
 petalCol = mix(petalCol, uTipColor, smoothstep(0.3, 0.88, pv));
 
 // Дэлбээ: ёроолоос сэвэлгэр нарийн судал. Навч: гол судал + хажуугийн судал.
-float petalVein = veinLine(pxn * 16.0 + 0.35 * sin(pv * 11.0 + uSeed * 40.0 + pxn * 3.0), 0.05);
+float petalVein = veinLine(pxn * 16.0 + 0.35 * sin(pv * 11.0 + vPetalSeed * 40.0 + pxn * 3.0), 0.05);
 float midrib = 1.0 - smoothstep(0.0, 0.03 + fwidth(pxn), abs(pxn));
 float lateral = veinLine((pv - abs(pxn) * 0.45) * 9.0, 0.04) * smoothstep(0.03, 0.08, abs(pxn));
 float vein = mix(petalVein, max(midrib, lateral * 0.7), uLeaf);
@@ -215,10 +232,13 @@ vein *= uVeins * (1.0 - smoothstep(0.75, 1.0, pv));
 petalCol = mix(petalCol, petalCol * uVeinTint / max(uMidColor, vec3(1e-3)), vein * 0.6);
 
 // Дэлбээ бүрийн бага зэргийн ялгаа + ёроолын хуурамч ambient occlusion
-petalCol *= 0.94 + 0.12 * fract(uSeed * 7.13);
+petalCol *= 0.94 + 0.12 * fract(vPetalSeed * 7.13);
 petalCol *= mix(1.0, 0.3 + 0.7 * smoothstep(0.0, 0.5, pv), uAO);
 
 diffuseColor.rgb *= petalCol;
+#ifdef PETAL_DRIFT
+diffuseColor.a *= vDriftFade;
+#endif
 `;
 
 const fragmentTranslucency = /* glsl */ `
@@ -253,7 +273,16 @@ function onBeforeCompile(this: WithUniforms, shader: THREE.WebGLProgramParameter
     .replace("#include <lights_fragment_end>", `#include <lights_fragment_end>\n${fragmentTranslucency}`);
 }
 
-export function createPetalMaterial(palette: PetalPalette, shared: SharedPetalUniforms, seed: number) {
+/**
+ * `drift`: InstancedMesh-ийн урсах дэлбээ — seed ба fade нь `aDrift` instance attribute-аас,
+ * transparent (instance-ууд CPU дээр арнаас урагш эрэмбэлэгдэнэ).
+ */
+export function createPetalMaterial(
+  palette: PetalPalette,
+  shared: SharedPetalUniforms,
+  seed: number,
+  { drift = false }: { drift?: boolean } = {},
+) {
   const uniforms = createOwnUniforms(palette, seed);
   const material = new THREE.MeshPhysicalMaterial({
     color: "#ffffff",
@@ -264,7 +293,10 @@ export function createPetalMaterial(palette: PetalPalette, shared: SharedPetalUn
     sheenRoughness: 0.45,
     sheenColor: palette.leaf ? new THREE.Color("#C9D9A8") : new THREE.Color("#F3D3D8"),
     side: THREE.DoubleSide,
+    transparent: drift,
+    depthWrite: !drift,
   }) as WithUniforms;
+  if (drift) material.defines = { PETAL_DRIFT: "" };
   material.userData.uniforms = { ...uniforms, ...shared };
   material.onBeforeCompile = onBeforeCompile;
   return { material, uniforms };
