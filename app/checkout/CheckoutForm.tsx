@@ -158,7 +158,7 @@ export function CheckoutForm({ catalog, slots }: { catalog: CartFlower[]; slots:
         <p className="text-lg text-ivory/60">Сагс хоосон байна — захиалахын өмнө цэцгээ сонгоорой.</p>
         <Link
           href="/catalog"
-          className="inline-block bg-gold-soft px-8 py-4 text-xs tracking-[0.2em] text-plum-950 uppercase transition-colors duration-500 hover:bg-blush-100"
+          className="btn-primary"
         >
           Каталог үзэх
         </Link>
@@ -242,7 +242,7 @@ export function CheckoutForm({ catalog, slots }: { catalog: CartFlower[]; slots:
           </div>
 
           <fieldset className="mt-10 min-w-0">
-            <legend className="mb-4 text-xs tracking-[0.3em] text-ivory/50 uppercase">Хүргэх өдөр, цаг</legend>
+            <legend className="mb-4 text-xs tracking-[0.16em] text-ivory/50 uppercase">Хүргэх өдөр, цаг</legend>
             {days.length ? (
               <div className="space-y-4">
                 <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="group" aria-label="Хүргэх өдөр">
@@ -385,7 +385,7 @@ export function CheckoutForm({ catalog, slots }: { catalog: CartFlower[]; slots:
       <aside className="lg:sticky lg:top-[calc(var(--header-height)+2rem)] lg:self-start">
         <div className="border border-ivory/10 bg-plum-800/20 p-6 sm:p-8">
           <div className="mb-2 flex items-baseline justify-between">
-            <p className="text-xs tracking-[0.3em] text-gold-soft uppercase">Таны захиалга</p>
+            <p className="text-xs tracking-[0.16em] text-gold-soft uppercase">Таны захиалга</p>
             <Link href="/cart" className="text-xs text-ivory/50 underline-offset-4 transition-colors hover:text-blush-100 hover:underline">
               Засах
             </Link>
@@ -407,7 +407,7 @@ export function CheckoutForm({ catalog, slots }: { catalog: CartFlower[]; slots:
             type="submit"
             form={FORM_ID}
             disabled={isSubmitting}
-            className="mt-8 w-full bg-gold-soft px-8 py-4 text-xs tracking-[0.2em] text-plum-950 uppercase transition-colors duration-500 hover:bg-blush-100 disabled:cursor-wait disabled:opacity-60"
+            className="mt-8 w-full btn-primary disabled:cursor-wait disabled:opacity-60"
           >
             {isSubmitting ? "Илгээж байна…" : "Захиалга баталгаажуулах"}
           </button>
@@ -425,7 +425,7 @@ function Section({ index, title, aside, children }: { index: number; title: stri
     <section>
       <div className="mb-8 flex items-baseline justify-between gap-4 border-b border-ivory/10 pb-4">
         <h2 className="flex items-baseline gap-4">
-          <span className="text-xs tracking-[0.3em] text-gold-soft tabular-nums">{String(index).padStart(2, "0")}</span>
+          <span className="text-xs tracking-[0.16em] text-gold-soft tabular-nums">{String(index).padStart(2, "0")}</span>
           <span className="font-display text-3xl font-light">{title}</span>
         </h2>
         {aside && <p className="text-xs tracking-[0.2em] text-ivory/45 uppercase">{aside}</p>}

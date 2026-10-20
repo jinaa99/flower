@@ -41,7 +41,7 @@ export function PurchasePanel({ flower, slots }: { flower: Flower; slots: SlotIn
   return (
     <div className="space-y-10">
       <fieldset>
-        <legend className="mb-4 text-xs tracking-[0.3em] text-ivory/50 uppercase">Баглааны хэмжээ</legend>
+        <legend className="mb-4 text-xs tracking-[0.16em] text-ivory/50 uppercase">Баглааны хэмжээ</legend>
         <div className="grid grid-cols-3 gap-3">
           {sizes.map((s) => {
             const disabled = s.stems > stock;
@@ -75,7 +75,7 @@ export function PurchasePanel({ flower, slots }: { flower: Flower; slots: SlotIn
 
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div>
-          <p id="qty-label" className="mb-3 text-xs tracking-[0.3em] text-ivory/50 uppercase">
+          <p id="qty-label" className="mb-3 text-xs tracking-[0.16em] text-ivory/50 uppercase">
             Тоо ширхэг
           </p>
           <div role="group" aria-labelledby="qty-label" className="flex h-12 items-center border border-ivory/15">
@@ -104,7 +104,7 @@ export function PurchasePanel({ flower, slots }: { flower: Flower; slots: SlotIn
 
       {/* fieldset-ийн анхдагч min-inline-size: min-content — өдрүүдийн scroll мөр хуудсыг өргөсгөхгүй */}
       <fieldset className="min-w-0">
-        <legend className="mb-4 flex w-full items-baseline justify-between gap-4 text-xs tracking-[0.3em] text-ivory/50 uppercase">
+        <legend className="mb-4 flex w-full items-baseline justify-between gap-4 text-xs tracking-[0.16em] text-ivory/50 uppercase">
           Хүргэлт
           <span className="tracking-normal normal-case">Улаанбаатар хот дотор</span>
         </legend>
@@ -164,7 +164,7 @@ export function PurchasePanel({ flower, slots }: { flower: Flower; slots: SlotIn
             delivery?.confirm();
             setAdded(true);
           }}
-          className="flex-1 bg-gold-soft px-8 py-4 text-xs tracking-[0.2em] text-plum-950 uppercase tabular-nums transition-colors duration-500 hover:bg-blush-100 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none"
+          className="flex-1 btn-primary tabular-nums disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none"
         >
           {added ? "Нэмэгдлээ ✓" : canBuy ? `Сагсанд нэмэх · ${formatPrice(selected.price * qty)}` : "Одоогоор дууссан"}
         </button>

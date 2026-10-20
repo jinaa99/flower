@@ -12,6 +12,9 @@ type Hex = string;
 /** Ёроол → дунд → үзүүрийн gradient, судал, ар талын гэрлийн нэвтрэлт, sheen */
 export type PetalColors = { base: Hex; mid: Hex; tip: Hex; veinTint: Hex; trans: Hex; sheen: Hex };
 
+/** Дэлбээний толбо: өнгө, нягтрал (0–1) — зэрлэг сараана (Lilium martagon) */
+export type PetalSpots = { color: Hex; amount: number };
+
 /** Outline: x — хамгийн өргөн цэгийн exponent (их = үзүүр рүү), y — үзүүрийн хурц (бага = мохоо), z — ёроолын өргөн */
 export type Outline = readonly [number, number, number];
 
@@ -58,6 +61,7 @@ export type FlowerSpec = {
     width: number;
     outline: Outline;
     colors: PetalColors;
+    spots?: PetalSpots;
     /** Гадна давхарга bloom=0-д, хамгийн дотор нь bloom=stagger-т нээгдэж эхэлнэ */
     stagger: number;
     size: Range;
@@ -126,46 +130,49 @@ export const peonySpec: Omit<FlowerSpec, "image"> = {
   slug: "peony",
   headTilt: 0.5,
   petals: {
-    // Дотроос гадагш 5 → 7 дэлбээ, хамгийн гадна 6 том «guard» дэлбээ
-    counts: [5, 6, 7, 7, 6],
+    // Хагас давхар «Coral Charm» (бүтээгдэхүүний зурагтай ижил): 4 эгнээ өргөн, аяга хэлбэрийн дэлбээ,
+    // голдоо алтан дохиурын бөөгнөрөл — анатоми нь харагдана
+    counts: [6, 8, 8],
     arrangement: "spiral",
-    jitter: 0.12,
+    jitter: 0.22,
     length: 1,
-    width: 0.92,
-    outline: [1.6, 0.5, 0.14],
-    // ёроолд гүн blush → blush-300 → ivory үзүүр
-    colors: { base: "#B86E86", mid: "#E3A6B2", tip: "#F8F3EC", veinTint: "#E3A9B8", trans: "#FFD2D6", sheen: "#F3D3D8" },
-    stagger: 0.45,
-    size: [0.46, 1],
+    width: 1.02,
+    outline: [1.35, 0.45, 0.2],
+    // Ёроолд гүн коралл → тод коралл → ирмэгтээ тоорын өнгө рүү цайрна
+    colors: { base: "#A82843", mid: "#EC5A5C", tip: "#F49A86", veinTint: "#C9434F", trans: "#FF9A84", sheen: "#F9C6B6" },
+    stagger: 0.36,
+    size: [0.62, 1],
     sizeCurve: 0.8,
-    budSize: 0.72,
-    widthScale: [0.8, 1.05],
-    radius: [0.02, 0.1],
+    budSize: 0.7,
+    widthScale: [0.82, 1.12],
+    radius: [0.1, 0.14],
     drop: 0.05,
-    tiltBud: [0.12, 0.3],
-    tiltOpen: [0.28, 1.35],
-    tiltCurve: 1.3,
-    cupBud: 0.75,
-    cupOpen: [0.935, 0.55],
+    tiltBud: [0.1, 0.24],
+    // Дотор эгнээ ч нээгдэж аяга үүсгэнэ — голын дохиур харагдана
+    tiltOpen: [0.78, 1.08],
+    tiltCurve: 1,
+    cupBud: 0.85,
+    cupOpen: [1.08, 0.86],
     curlBud: -0.8,
-    curlOpen: [-0.315, 0.45],
-    ruffle: [0.84, 0.48],
-    ruffleBud: 0.35,
-    ao: [0.8, 0.2],
+    curlOpen: [-0.12, 0.1],
+    ruffle: [0.6, 0.42],
+    ruffleBud: 0.3,
+    ao: [0.4, 0.18],
   },
   sepals: { count: 5, length: 0.5, width: 0.34, tiltOpen: 1.75, colors: sepalGreen, outline: [1.0, 0.8, 0.2] },
   center: {
     receptacle: { color: "#557243", size: 0.13 },
+    // Нягт алтан бөөгнөрөл; голд нь ногоон үрийн савнууд
     stamens: {
-      count: 90,
-      radius: [0.045, 0.15],
-      height: [0.15, 0.09],
-      lean: [0.25, 0.85],
-      filament: "#EFD9A8",
-      anther: "#D9AE4E",
-      antherSize: [0.011, 0.022],
+      count: 170,
+      radius: [0.035, 0.105],
+      height: [0.11, 0.075],
+      lean: [0.2, 0.95],
+      filament: "#F1D27E",
+      anther: "#E2A52C",
+      antherSize: [0.008, 0.019],
     },
-    pistil: { count: 5, spread: 0.018, size: [0.017, 0.045], color: "#B97A86" },
+    pistil: { count: 5, spread: 0.022, size: [0.02, 0.052], color: "#9CB466" },
   },
   // Peony-ийн иш дээд хэсэгтээ улаавтар
   stem: { length: 3.4, radius: 0.05, top: "#6E4A3F", bottom: "#4A6B3A" },
@@ -178,14 +185,16 @@ export const peonySpec: Omit<FlowerSpec, "image"> = {
     ],
   },
   camera: { distance: 1, dive: 0.85 },
+  // Near-black burgundy, ард нь дулаан гэрлийн тойрог
   world: {
-    background: { inner: "#3A1C30", outer: "#1E0F1A" },
-    fog: "#2A1424",
-    hemisphere: { sky: "#F6DDE0", ground: "#3A1C30", intensity: 0.15 },
-    key: { color: "#FFF1E6", intensity: 1.5 },
-    rim: { color: "#F9CFD6", intensity: 2.6, secondary: "#E8B4BC" },
-    fill: { color: "#8A5A78", intensity: 0.3 },
-    envIntensity: 0.35,
+    // Дулаан near-black (бор-бордо) — коралл цэцгийг ягаан гэрлээр биш, байгалийн өнгөөр нь
+    background: { inner: "#2C1515", outer: "#0A0505" },
+    fog: "#160A0A",
+    hemisphere: { sky: "#FFF1E6", ground: "#24110F", intensity: 0.1 },
+    key: { color: "#FFF1E2", intensity: 2.1 },
+    rim: { color: "#FFD9C4", intensity: 1.9, secondary: "#C9AE84" },
+    fill: { color: "#5E3A34", intensity: 0.2 },
+    envIntensity: 0.28,
   },
 };
 
@@ -202,7 +211,7 @@ export const roseSpec: Omit<FlowerSpec, "image"> = {
     length: 0.9,
     width: 0.95,
     outline: [1.35, 0.55, 0.16],
-    colors: { base: "#5E0F1E", mid: "#9E1B32", tip: "#C8374D", veinTint: "#8A1A2E", trans: "#FF6E7A", sheen: "#F2A3AE" },
+    colors: { base: "#4A0816", mid: "#B81C3A", tip: "#7E1029", veinTint: "#8A142E", trans: "#FF5C6E", sheen: "#F08A98" },
     stagger: 0.5,
     size: [0.42, 1],
     sizeCurve: 0.9,
@@ -212,10 +221,10 @@ export const roseSpec: Omit<FlowerSpec, "image"> = {
     drop: 0.04,
     tiltBud: [0.03, 0.12],
     // Дотор давхарга бараг босоо (конус) хэвээр, гадна нь хэвтээ болно
-    tiltOpen: [0.06, 1.25],
-    tiltCurve: 1.8,
+    tiltOpen: [0.04, 1.15],
+    tiltCurve: 2.2,
     cupBud: 0.95,
-    cupOpen: [1.15, 0.7],
+    cupOpen: [1.2, 0.75],
     curlBud: -0.7,
     // Гадна дэлбээний үзүүр гадагш эргэнэ (reflex)
     curlOpen: [-0.5, 0.9],
@@ -257,13 +266,13 @@ export const roseSpec: Omit<FlowerSpec, "image"> = {
   },
   camera: { distance: 0.95, dive: 1.05 },
   world: {
-    background: { inner: "#3D1018", outer: "#170609" },
-    fog: "#2A0B12",
-    hemisphere: { sky: "#F3C9C2", ground: "#3D1018", intensity: 0.15 },
-    key: { color: "#FFE6D6", intensity: 1.4 },
-    rim: { color: "#FF9D8A", intensity: 2.4, secondary: "#C9A87C" },
-    fill: { color: "#7A3040", intensity: 0.3 },
-    envIntensity: 0.3,
+    background: { inner: "#350A12", outer: "#090304" },
+    fog: "#180509",
+    hemisphere: { sky: "#F3C9C2", ground: "#2A0A10", intensity: 0.12 },
+    key: { color: "#FFEADA", intensity: 2.6 },
+    rim: { color: "#FFB09E", intensity: 1.8, secondary: "#C9A87C" },
+    fill: { color: "#5A2030", intensity: 0.25 },
+    envIntensity: 0.28,
   },
 };
 
@@ -289,10 +298,11 @@ export const tulipSpec: Omit<FlowerSpec, "image"> = {
     radius: [0.02, 0.04],
     drop: 0.02,
     tiltBud: [0.04, 0.07],
-    tiltOpen: [0.62, 0.86],
+    // Нээгдсэн ч босоо аяга хэвээр (намуу цэцэг шиг хавтгай биш)
+    tiltOpen: [0.26, 0.46],
     tiltCurve: 1,
     cupBud: 1.05,
-    cupOpen: [0.6, 0.5],
+    cupOpen: [0.85, 0.72],
     curlBud: -0.35,
     curlOpen: [0.1, 0.25],
     ruffle: [0.04, 0.06],
@@ -325,9 +335,9 @@ export const tulipSpec: Omit<FlowerSpec, "image"> = {
   },
   camera: { distance: 0.85, dive: 0.55 },
   world: {
-    background: { inner: "#3B2418", outer: "#1A0F0A" },
-    fog: "#2A1A11",
-    hemisphere: { sky: "#FBE3D0", ground: "#3B2418", intensity: 0.18 },
+    background: { inner: "#43271A", outer: "#0E0805" },
+    fog: "#20130B",
+    hemisphere: { sky: "#FBE3D0", ground: "#2E1B10", intensity: 0.16 },
     key: { color: "#FFF0DC", intensity: 1.6 },
     rim: { color: "#FFC98F", intensity: 2.4, secondary: "#C9A87C" },
     fill: { color: "#7A5A40", intensity: 0.3 },
@@ -348,7 +358,8 @@ export const lilySpec: Omit<FlowerSpec, "image"> = {
     length: 1.2,
     width: 0.34,
     outline: [0.7, 1.25, 0.08],
-    colors: { base: "#6E3E7E", mid: "#B88AC8", tip: "#E5D2F0", veinTint: "#7A3E80", trans: "#E6C2FF", sheen: "#EDE0F8" },
+    colors: { base: "#7A2C4C", mid: "#C47A98", tip: "#E3B4C6", veinTint: "#8E3A5C", trans: "#FFB8D0", sheen: "#F2D9E3" },
+    spots: { color: "#45101F", amount: 0.55 },
     stagger: 0.25,
     size: [0.95, 1],
     sizeCurve: 1,
@@ -357,12 +368,12 @@ export const lilySpec: Omit<FlowerSpec, "image"> = {
     radius: [0.03, 0.05],
     drop: 0.02,
     tiltBud: [0.04, 0.06],
-    tiltOpen: [1.05, 1.2],
+    tiltOpen: [1.15, 1.3],
     tiltCurve: 1,
     cupBud: 0.9,
     cupOpen: [0.45, 0.35],
     curlBud: -0.2,
-    curlOpen: [1.0, 1.15],
+    curlOpen: [1.35, 1.5],
     ruffle: [0.08, 0.12],
     ruffleBud: 0.3,
     ao: [0.45, 0.3],
@@ -398,12 +409,12 @@ export const lilySpec: Omit<FlowerSpec, "image"> = {
   },
   camera: { distance: 1.05, dive: 0.7 },
   world: {
-    background: { inner: "#1F1E3D", outer: "#0D0C1E" },
-    fog: "#17162E",
-    hemisphere: { sky: "#E5DCF5", ground: "#1F1E3D", intensity: 0.16 },
-    key: { color: "#EEF0FF", intensity: 1.4 },
-    rim: { color: "#C9B8FF", intensity: 2.6, secondary: "#E8B4BC" },
-    fill: { color: "#4A4A7A", intensity: 0.3 },
-    envIntensity: 0.35,
+    background: { inner: "#1E2A1C", outer: "#060805" },
+    fog: "#111710",
+    hemisphere: { sky: "#F0E4EA", ground: "#18201A", intensity: 0.15 },
+    key: { color: "#FFF4EA", intensity: 1.6 },
+    rim: { color: "#F3C1D6", intensity: 2.4, secondary: "#C9AE84" },
+    fill: { color: "#3A4A34", intensity: 0.28 },
+    envIntensity: 0.32,
   },
 };

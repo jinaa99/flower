@@ -98,7 +98,7 @@ export function CatalogBrowser({ items }: { items: CatalogItem[] }) {
         </div>
 
         {results.length > 0 ? (
-          <ul className="mt-10 grid gap-x-8 gap-y-14 sm:grid-cols-2 xl:grid-cols-3">
+          <ul className="mt-10 grid grid-cols-2 gap-x-4 gap-y-12 sm:gap-x-8 sm:gap-y-14 xl:grid-cols-3">
             {results.map((item, i) => (
               <li
                 key={item.slug}
@@ -185,7 +185,7 @@ function SearchField({ value, onChange }: { value: string; onChange: (value: str
 function SortSelect({ value, onChange }: { value: SortId; onChange: (value: SortId) => void }) {
   return (
     <label className="relative ml-auto flex h-12 shrink-0 items-center gap-3 border border-ivory/15 pr-9 pl-4 transition-colors duration-300 hover:border-gold-soft/50 has-focus-visible:border-blush-300/60">
-      <span className="text-[0.65rem] tracking-[0.25em] text-ivory/45 uppercase">Эрэмбэ</span>
+      <span className="text-[0.65rem] tracking-[0.16em] text-ivory/45 uppercase">Эрэмбэ</span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value as SortId)}
@@ -224,7 +224,7 @@ function EmptyState({ query, onClear }: { query: string; onClear: () => void }) 
         <path d="M24 30c-6-3-9-8-9-13 4 0 7 2 9 5 2-3 5-5 9-5 0 5-3 10-9 13Z" />
         <path d="M24 30v12M24 38c-3-3-7-4-10-3M24 36c2-2 5-3 8-2" strokeLinecap="round" />
       </svg>
-      <p className="mt-8 text-xs tracking-[0.3em] text-gold-soft uppercase">Үр дүн олдсонгүй</p>
+      <p className="mt-8 text-xs tracking-[0.16em] text-gold-soft uppercase">Үр дүн олдсонгүй</p>
       <h2 className="mt-4 max-w-lg font-display text-3xl leading-tight font-light text-balance sm:text-4xl">
         {q ? <>«{q}» — тохирох цэцэг алга байна</> : "Сонгосон шүүлтүүрт тохирох цэцэг алга байна"}
       </h2>
@@ -234,7 +234,7 @@ function EmptyState({ query, onClear }: { query: string; onClear: () => void }) 
       <button
         type="button"
         onClick={onClear}
-        className="mt-10 bg-gold-soft px-7 py-3.5 text-xs tracking-[0.2em] text-plum-950 uppercase transition-colors duration-500 hover:bg-blush-100"
+        className="mt-10 btn-primary"
       >
         Шүүлтүүр арилгах
       </button>

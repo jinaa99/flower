@@ -79,6 +79,7 @@ export default function FlowerScene({
       dpr={quality.dpr}
       camera={{ position: CAMERA_POSITION, fov: 30, near: 0.1, far: 50 }}
       gl={{ antialias: false, stencil: false, powerPreference: "high-performance" }}
+      shadows="soft"
     >
       {/* FPS унавал чанарын түвшинг нэгээр бууруулна, сэргэвэл өсгөнө; олон дахин хэлбэлзвэл хамгийн бага түвшинд тогтоно */}
       <PerformanceMonitor
@@ -88,7 +89,7 @@ export default function FlowerScene({
         flipflops={4}
       />
       <color attach="background" args={[specs[0].world.background.outer]} />
-      <World worlds={worlds} params={params} journey={scrollDriven ? journey : undefined} />
+      <World worlds={worlds} params={params} journey={scrollDriven ? journey : undefined} shadowMap={quality.shadowMap} />
 
       {scrollDriven ? (
         <Journey

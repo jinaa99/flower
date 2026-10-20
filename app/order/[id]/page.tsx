@@ -33,7 +33,7 @@ async function OrderDetails({ params }: { params: PageProps<"/order/[id]">["para
   return (
     <>
       <header className="mb-16 text-center">
-        <p className="mb-6 text-xs tracking-[0.3em] text-gold-soft uppercase">
+        <p className="mb-6 text-xs tracking-[0.16em] text-gold-soft uppercase">
           {paid ? "Төлбөр төлөгдсөн" : "Захиалга хүлээн авлаа"}
         </p>
         <h1 className="font-display text-5xl leading-[1.05] font-light sm:text-7xl">
@@ -45,7 +45,7 @@ async function OrderDetails({ params }: { params: PageProps<"/order/[id]">["para
             : "Төлбөр баталгаажмагц баглааг бэлтгэж эхэлнэ."}
         </p>
         <p className="mt-8 inline-flex items-center gap-3 border border-gold-soft/30 px-5 py-2.5 text-sm tracking-[0.15em] tabular-nums">
-          <span className="text-xs tracking-[0.3em] text-ivory/50 uppercase">Дугаар</span>
+          <span className="text-xs tracking-[0.16em] text-ivory/50 uppercase">Дугаар</span>
           {order.number}
         </p>
       </header>
@@ -103,7 +103,7 @@ async function OrderDetails({ params }: { params: PageProps<"/order/[id]">["para
 function Summary({ order, methodLabel }: { order: Order; methodLabel: string }) {
   return (
     <div className="border border-ivory/10 bg-plum-800/20 p-6 sm:p-8">
-      <p className="mb-2 text-xs tracking-[0.3em] text-gold-soft uppercase">Хураангуй</p>
+      <p className="mb-2 text-xs tracking-[0.16em] text-gold-soft uppercase">Хураангуй</p>
       <ul className="divide-y divide-ivory/10">
         {order.lines.map((line, i) => (
           <li key={i} className="py-4">
@@ -138,7 +138,7 @@ function Summary({ order, methodLabel }: { order: Order; methodLabel: string }) 
           <dd>{orderStatusLabel(order.status)}</dd>
         </div>
         <div className="flex items-baseline justify-between border-t border-ivory/10 pt-4">
-          <dt className="text-xs tracking-[0.3em] text-ivory/60 uppercase">Нийт</dt>
+          <dt className="text-xs tracking-[0.16em] text-ivory/60 uppercase">Нийт</dt>
           <dd className="font-display text-3xl text-gold-soft tabular-nums">{formatPrice(order.total)}</dd>
         </div>
       </dl>

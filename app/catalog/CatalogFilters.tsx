@@ -96,7 +96,7 @@ export function FilterPanel({ filters, options, update }: PanelProps) {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <fieldset>
-      <legend className="mb-4 text-xs tracking-[0.3em] text-gold-soft uppercase">{title}</legend>
+      <legend className="mb-4 text-xs tracking-[0.16em] text-gold-soft uppercase">{title}</legend>
       {children}
     </fieldset>
   );
@@ -119,10 +119,10 @@ function ChipGroup({
           <label
             key={o.id}
             className={cn(
-              "cursor-pointer border px-3 py-1.5 text-xs transition-colors duration-300 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-blush-300",
+              "cursor-pointer rounded-full border px-3.5 py-1.5 text-[0.78rem] transition-colors duration-300 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-blush-300",
               checked
-                ? "border-blush-300 bg-blush-300/10 text-blush-100"
-                : "border-ivory/15 text-ivory/70 hover:border-gold-soft/50 hover:text-ivory",
+                ? "border-ivory bg-ivory text-plum-950"
+                : "border-ivory/15 text-ivory/70 hover:border-ivory/45 hover:text-ivory",
             )}
           >
             <input type="checkbox" checked={checked} onChange={() => onToggle(o.id)} className="sr-only" />
@@ -229,7 +229,7 @@ export function ActiveFilters({ filters, options, update, clear }: PanelProps & 
             type="button"
             onClick={chip.remove}
             aria-label={`${chip.label} шүүлтүүрийг арилгах`}
-            className="flex items-center gap-2 border border-blush-300/30 bg-blush-300/5 py-1 pr-2 pl-3 text-xs text-blush-100 transition-colors duration-300 hover:border-blush-300"
+            className="flex items-center gap-2 rounded-full border border-ivory/20 bg-ivory/[0.04] py-1 pr-2.5 pl-3.5 text-[0.78rem] text-ivory transition-colors duration-300 hover:border-ivory/50"
           >
             {chip.label}
             <span aria-hidden className="text-ivory/50">

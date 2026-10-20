@@ -98,16 +98,23 @@ export const selectCartCount = (s: CartState) =>
   s.items.reduce((sum, i) => sum + i.quantity, 0) + s.bouquets.reduce((sum, b) => sum + b.quantity, 0);
 
 type UIState = {
+  /** Mobile-ийн бүтэн дэлгэцийн цэс */
   menuOpen: boolean;
   setMenuOpen: (open: boolean) => void;
   /** Баруунаас гарах mini-cart */
   cartOpen: boolean;
   setCartOpen: (open: boolean) => void;
+  /** Хайлтын overlay */
+  searchOpen: boolean;
+  setSearchOpen: (open: boolean) => void;
 };
 
+// Overlay-ууд нэг зэрэг нээгдэхгүй — нэгийг нээхэд бусад нь хаагдана
 export const useUI = create<UIState>()((set) => ({
   menuOpen: false,
-  setMenuOpen: (menuOpen) => set({ menuOpen }),
+  setMenuOpen: (menuOpen) => set(menuOpen ? { menuOpen, cartOpen: false, searchOpen: false } : { menuOpen }),
   cartOpen: false,
-  setCartOpen: (cartOpen) => set({ cartOpen }),
+  setCartOpen: (cartOpen) => set(cartOpen ? { cartOpen, menuOpen: false, searchOpen: false } : { cartOpen }),
+  searchOpen: false,
+  setSearchOpen: (searchOpen) => set(searchOpen ? { searchOpen, menuOpen: false, cartOpen: false } : { searchOpen }),
 }));

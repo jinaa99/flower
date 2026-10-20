@@ -44,6 +44,8 @@ type Props = {
   params: FlowerParams;
   /** Өгвөл journey.world (бутархай индекс) болон haze-ийг дагана; үгүй бол worlds[0] статик */
   journey?: JourneyState;
+  /** Key гэрлийн сүүдрийн map-ийн хэмжээ (quality) */
+  shadowMap: number;
 };
 
 /**
@@ -51,7 +53,7 @@ type Props = {
  * хөрш ертөнцийн хооронд lerp — нэг цэцгийн голоор нэвтэрч дараагийн ертөнц рүү гарахад
  * өнгө, гэрэл зөөлөн шилжинэ. Бүх утга урьдчилан үүсгэсэн Color-д .lerpColors-оор бичигдэнэ.
  */
-export function World({ worlds, params, journey }: Props) {
+export function World({ worlds, params, journey, shadowMap }: Props) {
   const scene = useThree((s) => s.scene);
   const paramsRef = useRef(params);
   useLayoutEffect(() => {
@@ -71,6 +73,14 @@ export function World({ worlds, params, journey }: Props) {
 
   useLayoutEffect(() => attachFog(scene, fog), [scene, fog]);
 
+  // Чанарын түвшин солигдоход shadow map шинэ хэмжээгээр дахин үүснэ (three өөрөө үүсгэхгүй)
+  useLayoutEffect(() => {
+    const shadow = key.current?.shadow;
+    if (!shadow?.map) return;
+    shadow.map.dispose();
+    shadow.map = null;
+  }, [shadowMap]);
+
   useFrame(({ scene }) => {
     const w = Math.min(Math.max(journey?.world ?? 0, 0), worlds.length - 1);
     const lights = { hemi: hemi.current, key: key.current, rim: rim.current, rim2: rim2.current, fill: fill.current };
@@ -81,8 +91,22 @@ export function World({ worlds, params, journey }: Props) {
     <>
       <Backdrop inner={live.inner} outer={live.outer} />
       <hemisphereLight ref={hemi} />
-      {/* Key: урд дээд зүүнээс зөөлөн дулаан */}
-      <directionalLight ref={key} position={[-3, 4, 4]} />
+      {/* Key: урд дээд зүүнээс зөөлөн дулаан — цорын ганц сүүдэр тусгах гэрэл (цэцгийн толгойд тааруулсан хүрээ) */}
+      <directionalLight
+        ref={key}
+        position={[-3, 4, 4]}
+        castShadow
+        shadow-mapSize={[shadowMap, shadowMap]}
+        shadow-bias={-0.0012}
+        shadow-normalBias={0.045}
+        shadow-radius={4}
+        shadow-camera-left={-1.5}
+        shadow-camera-right={1.5}
+        shadow-camera-top={1.5}
+        shadow-camera-bottom={-1.5}
+        shadow-camera-near={2}
+        shadow-camera-far={11}
+      />
       {/* Rim / back: ар талаас — дэлбээгээр нэвтэрч ирмэгийг гэрэлтүүлнэ */}
       <directionalLight ref={rim} position={[1.5, 2.2, -5]} />
       <directionalLight ref={rim2} position={[-2.5, 0.5, -4]} />
@@ -90,10 +114,11 @@ export function World({ worlds, params, journey }: Props) {
       <directionalLight ref={fill} position={[3, -1.5, 2]} />
 
       <Environment resolution={128} frames={1}>
-        <color attach="background" args={["#2A1424"]} />
-        <Lightformer form="rect" color="#F8F3EC" intensity={2} position={[0, 5, 2]} scale={[8, 3, 1]} target />
-        <Lightformer form="circle" color="#E8B4BC" intensity={1.6} position={[-5, 1, -3]} scale={4} target />
-        <Lightformer form="rect" color="#C9A87C" intensity={0.8} position={[5, 0, 2]} scale={[2, 5, 1]} target />
+        {/* Студийн гэрэл: дээрээс том softbox, хажуугаас дулаан champagne тусгал — өнгө нь ертөнцөөс */}
+        <color attach="background" args={["#140A0F"]} />
+        <Lightformer form="rect" color="#F4ECE2" intensity={2} position={[0, 5, 2]} scale={[8, 3, 1]} target />
+        <Lightformer form="circle" color="#E9CFC8" intensity={1.1} position={[-5, 1, -3]} scale={4} target />
+        <Lightformer form="rect" color="#C9AE84" intensity={0.7} position={[5, 0, 2]} scale={[2, 5, 1]} target />
       </Environment>
     </>
   );

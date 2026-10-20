@@ -4,22 +4,33 @@
 /* Design tokens — эх сурвалж нь энд. Tailwind v4-д @theme нь config-ийн үүрэг гүйцэтгэнэ:
    --color-plum-950 → bg-plum-950, text-plum-950 гэх мэт utility үүсгэнэ. */
 @theme {
-  --color-plum-950: #1e0f1a;
-  --color-plum-800: #3a1c30;
-  --color-blush-500: #d9577e;
-  --color-blush-300: #e8b4bc;
-  --color-blush-100: #f6dde0;
-  --color-ivory: #f8f3ec;
-  --color-gold-soft: #c9a87c;
+  /* Near-black burgundy — кино мэт дэвсгэр. Цэцгийн өөрийн өнгө хэсэг бүрийн өнгийг тодорхойлно. */
+  --color-plum-950: #140a0f;
+  /* Арай өргөгдсөн гадаргуу (drawer, панель) */
+  --color-plum-900: #1d0f16;
+  --color-plum-800: #33161f;
+  /* Гүн сарнайн өнгө — neon биш */
+  --color-blush-500: #b4486a;
+  --color-blush-300: #e3aab4;
+  --color-blush-100: #f3dade;
+  --color-ivory: #f4ece2;
+  /* Champagne — үнэ, нарийн шугам */
+  --color-gold-soft: #c9ae84;
+  /* Цайвар «цаасан» хэсэг (ботаникийн цомог): дулаан ivory цаас, бэх шиг бараан текст */
+  --color-paper: #ede5d9;
+  --color-gold-deep: #86683f;
+  --color-rose-ink: #973453;
+  /* Ботаникийн ногоон — ишний өнгө, жижиг accent */
+  --color-moss: #6f7d5c;
 
-  --font-display: var(--font-cormorant), "Times New Roman", serif;
+  --font-display: var(--font-serif-display), "Times New Roman", serif;
   --font-sans: var(--font-manrope), system-ui, sans-serif;
 
   --ease-bloom: cubic-bezier(0.22, 1, 0.36, 1);
 
-  /* Зөөлөн гэрэлтэлт — CTA, logo, онцолсон карт */
-  --shadow-glow: 0 0 48px -10px rgb(232 180 188 / 0.55);
-  --shadow-glow-lg: 0 0 90px -20px rgb(217 87 126 / 0.55);
+  /* Гэрэлтэлт биш — зөөлөн гүн сүүдэр (хуучин нэрээ хадгалсан) */
+  --shadow-glow: 0 18px 40px -24px rgb(0 0 0 / 0.65);
+  --shadow-glow-lg: 0 40px 90px -40px rgb(0 0 0 / 0.8);
 
   /* Цэцгийн хэлний хэсэг: дэлбээ хөвөх, тоосонцор анивчих */
   --animate-float: float 9s ease-in-out infinite;
@@ -49,6 +60,23 @@
 
   /* Нүүрний «Доош гүйлгэ» индикаторын гулсах шугам */
   --animate-scroll-hint: scroll-hint 2.4s var(--ease-bloom) infinite;
+
+  /* Header-ийн «Дэлгүүр» цэс: богино, зөөлөн — удаан анимейшнгүй */
+  --animate-menu-in: menu-in 0.28s var(--ease-bloom) both;
+  --animate-fade-in: fade-in 0.28s ease-out both;
+
+  @keyframes menu-in {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
 
   /* Каталогийн карт шүүлтүүрийн дараа зөөлөн тодорно */
   --animate-card-in: card-in 0.9s var(--ease-bloom) both;
@@ -81,26 +109,49 @@ body {
   font-family: var(--font-sans);
 }
 
-/* ───── Товч, панель — premium botanical ───── */
+/* ───── Товч, панель — нэг систем: бүх хуудсанд ижил ───── */
 
-/* Үндсэн CTA: blush pill, зөөлөн гэрэлтэлттэй */
+/* Үндсэн CTA: ivory pill — гэрэлтэлтгүй, тод уншигдана */
 @utility btn-primary {
-  @apply inline-flex items-center justify-center gap-3 rounded-full bg-blush-100 px-7 py-3.5 text-sm font-medium tracking-[0.02em] text-plum-950 shadow-glow transition-all duration-500 ease-bloom hover:bg-ivory hover:shadow-glow-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blush-300 disabled:cursor-not-allowed disabled:opacity-50;
+  @apply inline-flex items-center justify-center gap-3 rounded-full bg-ivory px-7 py-3.5 text-[0.82rem] font-medium tracking-[0.03em] text-plum-950 transition-colors duration-500 ease-bloom hover:bg-blush-100 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blush-300 disabled:cursor-not-allowed disabled:opacity-40;
 }
 
 /* Хоёрдогч: нимгэн хүрээтэй pill */
 @utility btn-ghost {
-  @apply inline-flex items-center justify-center gap-3 rounded-full border border-ivory/25 px-7 py-3.5 text-sm tracking-[0.02em] text-ivory transition-all duration-500 ease-bloom hover:border-blush-100/70 hover:bg-ivory/[0.04] hover:text-blush-100 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blush-300;
+  @apply inline-flex items-center justify-center gap-3 rounded-full border border-ivory/25 px-7 py-3.5 text-[0.82rem] tracking-[0.03em] text-ivory transition-colors duration-500 ease-bloom hover:border-ivory/70 hover:bg-ivory/[0.04] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blush-300 disabled:cursor-not-allowed disabled:opacity-40;
 }
 
-/* Шилэн панель: бүдэг plum + blur + нарийн хүрээ */
+/* Текст холбоос: доогуур нь шугам зүүнээс баруун тийш татагдана */
+@utility link-line {
+  @apply bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_1px] bg-left-bottom bg-no-repeat pb-1 transition-[background-size,color] duration-500 ease-bloom hover:bg-[length:100%_1px];
+}
+
+/* Панель: 3D дээр уншигдах хэмжээний бараан, бага зэрэг blur — «шилэн» эффект биш */
 @utility glass {
-  @apply border border-ivory/10 bg-plum-950/45 backdrop-blur-xl;
+  @apply border border-ivory/10 bg-plum-950/80 backdrop-blur-md;
 }
 
-/* Жижиг uppercase eyebrow + араас нь нарийн шугам */
+/* Жижиг uppercase eyebrow — хэмжүүртэй ашиглана (хэсэг бүрд нэгээс илүүгүй) */
 @utility eyebrow {
-  @apply flex items-center gap-4 text-[0.68rem] tracking-[0.38em] text-gold-soft uppercase after:h-px after:w-14 after:bg-gold-soft/40;
+  @apply flex items-center gap-3 text-[0.7rem] font-medium tracking-[0.2em] text-gold-soft uppercase before:h-px before:w-8 before:bg-gold-soft/50;
+}
+
+/* Нүүрний гэрэл зургийн аялал цайвар бүлэгт байхад header бараан бэхээр (сүүдэргүй) */
+:root[data-immersive][data-hero-tone="light"] header:not([data-menu]) {
+  background-image: none;
+}
+:root[data-immersive][data-hero-tone="light"] header:not([data-menu]) :is(a, button) {
+  color: color-mix(in oklab, var(--color-plum-950) 82%, transparent);
+  transition: color 0.6s var(--ease-bloom);
+}
+:root[data-immersive][data-hero-tone="light"] header:not([data-menu]) a span {
+  color: inherit;
+}
+
+/* Нэгдсэн keyboard focus — browser-ийн цэнхэр хүрээ биш */
+:focus-visible {
+  outline: 1px solid var(--color-blush-300);
+  outline-offset: 4px;
 }
 
 ::selection {

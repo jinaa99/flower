@@ -10,13 +10,14 @@ import type { JourneyState } from "./journey";
 import { clamp01, lerp } from "./math";
 
 /** Цэцгийн толгойноос бага зэрэг доош — дэлбээлсэн толгой дэлгэцийн төвөөс дээгүүр, header-т тулахгүй */
-const TARGET = new THREE.Vector3(0, 0.2, 0);
+const TARGET = new THREE.Vector3(0, 0.3, 0);
 
 /** Шатны эхэн → dive: зөөлөн тойрч (azimuth), бага зэрэг доошилж, ойртоно */
 const ORBIT = {
   azimuth: [-0.55, 0.4],
   elevation: [0.36, 0.22],
-  distance: [5.5, 5.2],
+  // Макро гэрэл зураг мэт: толгой кадрыг давамгайлж, иш кадраас гарна — хөвөх «asset» биш
+  distance: [4.05, 3.85],
 } as const;
 
 const DIVE = { fov: 40, near: 0.04 } as const;
@@ -24,7 +25,7 @@ const DIVE = { fov: 40, near: 0.04 } as const;
 const EMERGE = { distance: 1.8, azimuth: -0.6 } as const;
 
 /** Эхний цэцэг hero-д хагас дэлгэрсэн байдлаас эхэлнэ (бусад нь нахиагаар гарч ирнэ) */
-const INTRO_BLOOM = 0.38;
+const INTRO_BLOOM = 0.56;
 
 /** Damping-ийн хурд (1/сек) — их байх тусам scroll-ийг ойр дагана */
 const DAMPING = 3.2;

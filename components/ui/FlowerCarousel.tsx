@@ -50,7 +50,7 @@ export function FlowerCarousel({ eyebrow, title, items }: Props) {
     <section className="mt-28">
       <div className="mb-10 flex items-end justify-between gap-6">
         <div>
-          <p className="mb-4 text-xs tracking-[0.3em] text-gold-soft uppercase">{eyebrow}</p>
+          <p className="mb-4 text-xs tracking-[0.16em] text-gold-soft uppercase">{eyebrow}</p>
           <h2 className="font-display text-4xl leading-none font-light sm:text-5xl">{title}</h2>
         </div>
         {!(edges.start && edges.end) && (

@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useRef } from "react";
 import { CartLineRow } from "@/components/ui/CartLineRow";
 import { CartSummary } from "@/components/ui/CartSummary";
+import { CloseOnNavigate, useScrollLock } from "@/components/ui/CloseOnNavigate";
 import type { CartFlower } from "@/lib/cart";
 import { useUI } from "@/lib/store";
 import { useCartView } from "@/lib/useCartView";
@@ -26,15 +26,7 @@ export function CartDrawer({ catalog }: { catalog: CartFlower[] }) {
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
-  useEffect(() => {
-    if (!open) return;
-    const root = document.documentElement;
-    const prev = root.style.overflow;
-    root.style.overflow = "hidden";
-    return () => {
-      root.style.overflow = prev;
-    };
-  }, [open]);
+  useScrollLock(open);
 
   const count = lines.reduce((sum, l) => sum + l.quantity, 0);
 
@@ -44,7 +36,7 @@ export function CartDrawer({ catalog }: { catalog: CartFlower[] }) {
       aria-labelledby="cart-drawer-title"
       onClose={close}
       onClick={(e) => e.target === e.currentTarget && close()}
-      className="top-0 right-0 left-auto m-0 h-dvh max-h-none w-full max-w-md translate-x-full border-l border-gold-soft/20 bg-plum-950 p-0 text-ivory shadow-[-24px_0_60px_-20px_rgb(0_0_0/0.6)] transition-[translate,display,overlay] transition-discrete duration-500 ease-bloom open:translate-x-0 starting:open:translate-x-full backdrop:bg-plum-950/70 backdrop:opacity-0 backdrop:backdrop-blur-sm backdrop:transition-[opacity,display,overlay] backdrop:transition-discrete backdrop:duration-500 open:backdrop:opacity-100 starting:open:backdrop:opacity-0"
+      className="top-0 right-0 left-auto m-0 h-dvh max-h-none w-full max-w-md translate-x-full border-l border-ivory/10 bg-plum-900 p-0 text-ivory shadow-[-24px_0_60px_-20px_rgb(0_0_0/0.6)] transition-[translate,display,overlay] transition-discrete duration-500 ease-bloom open:translate-x-0 starting:open:translate-x-full backdrop:bg-plum-950/70 backdrop:opacity-0 backdrop:backdrop-blur-sm backdrop:transition-[opacity,display,overlay] backdrop:transition-discrete backdrop:duration-500 open:backdrop:opacity-100 starting:open:backdrop:opacity-0"
     >
       <Suspense>
         <CloseOnNavigate onNavigate={close} />
@@ -74,7 +66,7 @@ export function CartDrawer({ catalog }: { catalog: CartFlower[] }) {
             <Link
               href="/catalog"
               onClick={close}
-              className="mt-2 border border-gold-soft/50 px-8 py-3.5 text-xs tracking-[0.2em] text-gold-soft uppercase transition-colors duration-500 hover:bg-gold-soft hover:text-plum-950"
+              className="mt-2 btn-ghost"
             >
               Каталог үзэх
             </Link>
@@ -99,14 +91,14 @@ export function CartDrawer({ catalog }: { catalog: CartFlower[] }) {
                 <Link
                   href="/cart"
                   onClick={close}
-                  className="flex-1 border border-ivory/20 px-4 py-3.5 text-center text-xs tracking-[0.2em] text-ivory/80 uppercase transition-colors hover:border-blush-100 hover:text-blush-100"
+                  className="btn-ghost flex-1 px-4"
                 >
                   Сагс харах
                 </Link>
                 <Link
                   href="/checkout"
                   onClick={close}
-                  className="flex-[1.4] bg-gold-soft px-4 py-3.5 text-center text-xs tracking-[0.2em] text-plum-950 uppercase transition-colors duration-500 hover:bg-blush-100"
+                  className="btn-primary flex-[1.4] px-4"
                 >
                   Захиалах
                 </Link>
@@ -117,15 +109,4 @@ export function CartDrawer({ catalog }: { catalog: CartFlower[] }) {
       </div>
     </dialog>
   );
-}
-
-/** Хуудас солигдоход (browser back гэх мэт) drawer хаагдана. usePathname suspend болж болох тул Suspense дотор */
-function CloseOnNavigate({ onNavigate }: { onNavigate: () => void }) {
-  const pathname = usePathname();
-  const latest = useRef(onNavigate);
-  useEffect(() => {
-    latest.current = onNavigate;
-  });
-  useEffect(() => latest.current(), [pathname]);
-  return null;
 }

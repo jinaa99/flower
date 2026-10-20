@@ -92,6 +92,8 @@ export type CatalogItem = {
   swatch: [string, string];
   startingPrice: number;
   smallest: { size: BouquetSize; stems: number };
+  /** Бүх хэмжээ (хувилбар) — картанд «3 хэмжээ · 5–25 иш» */
+  sizes: { size: BouquetSize; stems: number; price: number }[];
   stock: number;
   popularity: number;
   addedAt: string;
@@ -99,6 +101,8 @@ export type CatalogItem = {
   /** Hover дээр шилжих 2 дахь зураг */
   alt: CoverImage | null;
   searchKey: string;
+  /** Улирлын цонх (сар, 1–12) — «5–7-р сар» гэх мэт тэмдэглэлээс; жилийн турш бол null */
+  season: [from: number, to: number] | null;
 };
 
 export function toCatalogItem(flower: Flower, cover: CoverImage | null): CatalogItem {
@@ -115,14 +119,25 @@ export function toCatalogItem(flower: Flower, cover: CoverImage | null): Catalog
     swatch: [flower.colors[0].hex, flower.colors.at(-1)!.hex],
     startingPrice: smallest.price,
     smallest: { size: smallest.size, stems: smallest.stems },
+    sizes: flower.pricing.sizes,
     stock: flower.pricing.stock,
     popularity: flower.popularity,
     addedAt: flower.addedAt,
     cover,
     alt: flower.images[1] ?? null,
     searchKey: searchKey([flower.nameMn, flower.nameEn, flower.latinName, flower.category].join(" ")),
+    season: parseSeason(flower.pricing.deliveryNote),
   };
 }
+
+/** «Улирлын цэцэг (5–7-р сар)», «Шилдэг нь 7–9-р сард» → [5, 7]; «Жилийн турш» → null */
+export function parseSeason(note: string): [number, number] | null {
+  const m = note.split(".")[0].match(/(\d{1,2})\s*[–-]\s*(\d{1,2})-р сар/);
+  return m ? [Number(m[1]), Number(m[2])] : null;
+}
+
+export const inSeason = (season: [number, number] | null, month: number) =>
+  season !== null && (season[0] <= season[1] ? month >= season[0] && month <= season[1] : month >= season[0] || month <= season[1]);
 
 /* ───────────── Шүүлтүүрийн state ↔ URL ───────────── */
 

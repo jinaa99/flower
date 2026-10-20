@@ -72,7 +72,7 @@ export function PaymentPanel({
           type="button"
           onClick={check}
           disabled={pending}
-          className="bg-gold-soft px-8 py-4 text-xs tracking-[0.2em] text-plum-950 uppercase transition-colors duration-500 hover:bg-blush-100 disabled:cursor-wait disabled:opacity-60"
+          className="btn-primary disabled:cursor-wait disabled:opacity-60"
         >
           {pending ? "Шалгаж байна…" : "Төлбөр шалгах"}
         </button>

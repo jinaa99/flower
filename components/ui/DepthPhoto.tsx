@@ -29,6 +29,13 @@ type Props = {
   strength?: number;
   priority?: boolean;
   className?: string;
+  /** true үед хөдөлгөөн зогсоно (давхарласан, харагдахгүй байгаа кадр) */
+  paused?: boolean;
+  /**
+   * Гаднаас (scroll timeline) удирдах камерын байрлал (−1..1) — GSAP энэ object-ийг шууд tween хийнэ.
+   * Өгвөл scroll нь гол хөдөлгөөн, хулгана/хөвөлт нь бага хэмжээгээр нэмэгдэнэ.
+   */
+  drive?: { x: number; y: number };
 };
 
 const vertex = `
@@ -68,8 +75,25 @@ void main() {
   gl_FragColor = vec4(texture2D(uImage, clamp(p, 0.001, 0.999)).rgb, 1.0);
 }`;
 
-export function DepthPhoto({ src, depth, alt, width, height, sizes, color, strength = 0.035, priority, className }: Props) {
+export function DepthPhoto({
+  src,
+  depth,
+  alt,
+  width,
+  height,
+  sizes,
+  color,
+  strength = 0.035,
+  priority,
+  className,
+  paused = false,
+  drive,
+}: Props) {
   const wrap = useRef<HTMLDivElement>(null);
+  const pausedRef = useRef(paused);
+  useEffect(() => {
+    pausedRef.current = paused;
+  }, [paused]);
   const canvas = useRef<HTMLCanvasElement>(null);
   const reduced = useReducedMotion();
   const [ready, setReady] = useState(false);
@@ -142,7 +166,7 @@ export function DepthPhoto({ src, depth, alt, width, height, sizes, color, stren
     }
 
     const tick = (_t: number, dt: number) => {
-      if (!state.visible || state.loaded < 2) return;
+      if (!state.visible || pausedRef.current || state.loaded < 2) return;
       state.time += dt / 1000;
       // Scroll: элемент дэлгэцийн төвөөс дээш/доош байх тусам бага зэрэг хазайна
       const r = el.getBoundingClientRect();
@@ -153,6 +177,11 @@ export function DepthPhoto({ src, depth, alt, width, height, sizes, color, stren
         const k = coarse ? 0.55 : 0.3;
         gx = Math.sin(state.time * 0.35) * k;
         gy = Math.sin(state.time * 0.27 + 1.2) * k * 0.6 + scrollTilt;
+      }
+      if (drive) {
+        // Scroll-оор удирдсан камер + хулгана/хөвөлтийн бага хэмжээ (sticky тул scrollTilt тогтмол — хэрэглэхгүй)
+        gx = drive.x + gx * 0.35;
+        gy = drive.y + (gy - scrollTilt) * 0.35;
       }
       const f = 1 - Math.exp(-dt / 1000 / 0.35);
       state.x += (gx - state.x) * f;
@@ -193,7 +222,7 @@ export function DepthPhoto({ src, depth, alt, width, height, sizes, color, stren
       gl.deleteProgram(program);
       setReady(false);
     };
-  }, [src, depth, width, height, strength, reduced]);
+  }, [src, depth, width, height, strength, reduced, drive]);
 
   return (
     <div ref={wrap} className={cn("relative overflow-hidden", className)} style={{ backgroundColor: color }}>

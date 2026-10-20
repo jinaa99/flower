@@ -17,7 +17,7 @@ export function CartSummary({ totals, className }: { totals: CartTotals; classNa
           <dd className="tabular-nums">{totals.deliveryFee ? formatPrice(totals.deliveryFee) : <span className="text-blush-100">Үнэгүй</span>}</dd>
         </div>
         <div className="flex items-baseline justify-between gap-4 border-t border-ivory/10 pt-4">
-          <dt className="text-xs tracking-[0.3em] text-ivory/60 uppercase">Нийт</dt>
+          <dt className="text-xs tracking-[0.16em] text-ivory/60 uppercase">Нийт</dt>
           <dd className="font-display text-3xl text-gold-soft tabular-nums">{formatPrice(totals.total)}</dd>
         </div>
       </dl>

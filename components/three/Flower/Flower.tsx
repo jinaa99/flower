@@ -41,6 +41,8 @@ type PetalLayout = {
   len: number;
   wid: number;
   tilt: number;
+  /** Дэлбээ өөрийн тэнхлэгээ тойрон бага зэрэг мушгирна — радиал тэгш хэмийг эвдэнэ */
+  twist: number;
   seed: number;
 };
 
@@ -63,10 +65,11 @@ function layoutPetals(P: PetalSpec): PetalLayout[] {
       specs.push({
         t,
         azimuth: azimuth + (rand() - 0.5) * P.jitter,
-        len: 1 + (rand() - 0.5) * 0.14,
-        wid: 1 + (rand() - 0.5) * 0.12,
-        tilt: (rand() - 0.5) * 0.12,
+        len: 1 + (rand() - 0.5) * 0.2,
+        wid: 1 + (rand() - 0.5) * 0.18,
+        tilt: (rand() - 0.5) * 0.2,
         seed: rand(),
+        twist: (rand() - 0.5) * 0.3,
       });
     }
   }
@@ -111,7 +114,7 @@ export function Flower({ spec, params, wind, reducedMotion, bloom: bloomRef, foc
   const petalGeometry = useMemo(() => createPetalGeometry(segments), [segments]);
 
   const petals = useMemo(() => {
-    const palette = createPalette(spec.petals.colors, spec.petals.outline);
+    const palette = createPalette(spec.petals.colors, spec.petals.outline, 0, spec.petals.spots);
     return layoutPetals(spec.petals).map((layout) => ({
       layout,
       flap: createFlap(layout.t, layout.seed),
@@ -144,8 +147,8 @@ export function Flower({ spec, params, wind, reducedMotion, bloom: bloomRef, foc
     [spec.center.receptacle.color],
   );
 
-  useEffect(() => () => petals.forEach((p) => p.material.dispose()), [petals]);
-  useEffect(() => () => sepals.forEach((s) => s.material.dispose()), [sepals]);
+  useEffect(() => () => petals.forEach((p) => (p.material.dispose(), p.depthMaterial?.dispose())), [petals]);
+  useEffect(() => () => sepals.forEach((s) => (s.material.dispose(), s.depthMaterial?.dispose())), [sepals]);
   useEffect(
     () => () => {
       receptacle.geometry.dispose();
@@ -203,7 +206,7 @@ export function Flower({ spec, params, wind, reducedMotion, bloom: bloomRef, foc
       {/* Толгой ишний үзүүрийг дагаж хазайна */}
       <group ref={head}>
         <group rotation-x={spec.headTilt}>
-          {petals.map(({ layout, material }, i) => (
+          {petals.map(({ layout, material, depthMaterial }, i) => (
             <group key={i} rotation-y={layout.azimuth}>
               <mesh
                 ref={(m) => {
@@ -211,11 +214,14 @@ export function Flower({ spec, params, wind, reducedMotion, bloom: bloomRef, foc
                 }}
                 geometry={petalGeometry}
                 material={material}
+                customDepthMaterial={depthMaterial}
+                castShadow
+                receiveShadow
                 frustumCulled={false}
               />
             </group>
           ))}
-          {sepals.map(({ azimuth, material }, i) => (
+          {sepals.map(({ azimuth, material, depthMaterial }, i) => (
             <group key={i} rotation-y={azimuth}>
               <mesh
                 ref={(m) => {
@@ -223,6 +229,9 @@ export function Flower({ spec, params, wind, reducedMotion, bloom: bloomRef, foc
                 }}
                 geometry={petalGeometry}
                 material={material}
+                customDepthMaterial={depthMaterial}
+                castShadow
+                receiveShadow
                 frustumCulled={false}
               />
             </group>
@@ -270,7 +279,8 @@ function WindDriver({ sim, wind, shared, head, focus, stemLength, reducedMotion 
     updateWindUniforms(shared, sim, cfg);
     if (!head.current) return;
     applyStemSway(head.current, TIP, sim, cfg, stemLength);
-    if (focus) head.current.getWorldPosition(focus);
+    head.current.getWorldPosition(shared.uHeadCenter.value);
+    if (focus) focus.copy(shared.uHeadCenter.value);
   });
   return null;
 }
@@ -297,7 +307,7 @@ function updatePetal(
   const tiltOpen = lerp(P.tiltOpen[0], P.tiltOpen[1], t ** P.tiltCurve);
   mesh.position.set(0, -t * P.drop, radius);
   // Ry(π): дэлбээний дотор тал (+Z) төв тэнхлэг рүү харна; Rx: гадагш хазайна
-  mesh.rotation.set(lerp(tiltBud, tiltOpen, prog) + s.tilt, Math.PI, 0);
+  mesh.rotation.set(lerp(tiltBud, tiltOpen, prog) + s.tilt, Math.PI, s.twist * prog);
 
   u.uLength.value = P.length * p.length * s.len * size;
   u.uWidth.value = P.width * p.width * s.wid * lerp(P.widthScale[0], P.widthScale[1], t) * size;
@@ -325,4 +335,5 @@ function updateShared(shared: SharedPetalUniforms, p: FlowerParams) {
   shared.uGlow.value = p.edgeGlow;
   shared.uHeart.value = p.heartGlow;
   shared.uDew.value = p.dew;
+  shared.uCavity.value = p.cavity;
 }

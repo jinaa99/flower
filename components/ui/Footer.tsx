@@ -38,7 +38,7 @@ export function Footer() {
         </div>
         {columns.map((col) => (
           <nav key={col.title} aria-label={col.title}>
-            <h2 className="mb-5 text-[0.65rem] tracking-[0.35em] text-gold-soft uppercase">{col.title}</h2>
+            <h2 className="mb-5 text-[0.65rem] tracking-[0.16em] text-gold-soft uppercase">{col.title}</h2>
             <ul className="space-y-3 text-sm">
               {col.links.map((l) => (
                 <li key={l.href}>
@@ -51,7 +51,7 @@ export function Footer() {
           </nav>
         ))}
         <div>
-          <h2 className="mb-5 text-[0.65rem] tracking-[0.35em] text-gold-soft uppercase">Хүргэлт</h2>
+          <h2 className="mb-5 text-[0.65rem] tracking-[0.16em] text-gold-soft uppercase">Хүргэлт</h2>
           <p className="text-sm leading-relaxed text-ivory/65">
             Улаанбаатар хот дотор
             <br />

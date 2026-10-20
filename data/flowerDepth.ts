@@ -26,9 +26,7 @@ export const flowerDepth: Partial<Record<FlowerSlug, (string | null)[]>> = {
     "/images/depth/tulip-3.webp"
   ],
   "lily": [
-    "/images/depth/lily-1.webp",
-    "/images/depth/lily-2.webp",
-    "/images/depth/lily-3.webp"
+    "/images/depth/lily-1.webp"
   ],
   "oriental-lily": [
     "/images/depth/oriental-lily-1.webp",
@@ -64,5 +62,39 @@ export const flowerDepth: Partial<Record<FlowerSlug, (string | null)[]>> = {
     "/images/depth/iris-1.webp",
     "/images/depth/iris-2.webp",
     "/images/depth/iris-3.webp"
+  ],
+  "lilac": [
+    "/images/depth/lilac-1.webp",
+    "/images/depth/lilac-2.webp",
+    "/images/depth/lilac-3.webp"
+  ],
+  "lavender": [
+    "/images/depth/lavender-1.webp",
+    "/images/depth/lavender-2.webp",
+    "/images/depth/lavender-3.webp"
+  ],
+  "gerbera": [
+    "/images/depth/gerbera-1.webp",
+    "/images/depth/gerbera-2.webp",
+    "/images/depth/gerbera-3.webp"
+  ],
+  "calla": [
+    "/images/depth/calla-1.webp",
+    "/images/depth/calla-2.webp",
+    "/images/depth/calla-3.webp"
+  ],
+  "freesia": [
+    "/images/depth/freesia-1.webp",
+    "/images/depth/freesia-2.webp",
+    "/images/depth/freesia-3.webp"
+  ],
+  "lisianthus": [
+    "/images/depth/lisianthus-1.webp",
+    "/images/depth/lisianthus-2.webp"
+  ],
+  "gypsophila": [
+    "/images/depth/gypsophila-1.webp",
+    "/images/depth/gypsophila-2.webp",
+    "/images/depth/gypsophila-3.webp"
   ]
 };

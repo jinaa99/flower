@@ -103,11 +103,12 @@ export function BouquetBuilder({ flowers, initialSlug }: { flowers: BuilderFlowe
   return (
     <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-16 xl:grid-cols-[minmax(0,1fr)_30rem]">
       <aside className="lg:sticky lg:top-[calc(var(--header-height)+1.5rem)] lg:order-2 lg:self-start">
-        <div className="relative mx-auto aspect-[400/520] max-h-[58svh] border border-ivory/10 bg-[radial-gradient(circle_at_50%_38%,var(--color-plum-800),var(--color-plum-950)_75%)] lg:max-h-[min(34rem,calc(100svh-var(--header-height)-20rem))]">
+        {/* Цэцэгчний ширээ: дээрээс champagne гэрлийн тойрог, доор ширээний нарийн шугам */}
+        <div className="relative mx-auto aspect-[400/520] max-h-[58svh] bg-[radial-gradient(ellipse_65%_50%_at_50%_32%,rgb(201_174_132/0.13),transparent_72%),linear-gradient(to_bottom,var(--color-plum-900),var(--color-plum-950))] after:absolute after:inset-x-8 after:bottom-[9%] after:h-px after:bg-linear-to-r after:from-transparent after:via-ivory/15 after:to-transparent lg:max-h-[min(34rem,calc(100svh-var(--header-height)-20rem))]">
           <BouquetPreview config={config} flowers={bySlug} />
           {stemCount === 0 && (
-            <p className="pointer-events-none absolute inset-x-0 top-[28%] text-center text-xs tracking-[0.3em] text-ivory/45 uppercase">
-              Цэцэг нэмж эхлээрэй
+            <p className="pointer-events-none absolute inset-x-0 top-[7%] text-center font-display text-lg text-ivory/50 italic">
+              Эхний ишээ сонгоорой
             </p>
           )}
         </div>
@@ -127,7 +128,7 @@ export function BouquetBuilder({ flowers, initialSlug }: { flowers: BuilderFlowe
         <Step index={1} title="Цэцэг" aside={`${stemCount} / ${MAX_STEMS} иш`}>
           {suggestions.length > 0 && (
             <div className="mb-8 border border-gold-soft/20 bg-plum-800/20 p-5">
-              <p className="mb-4 text-xs tracking-[0.3em] text-gold-soft uppercase">Хамт тохирох</p>
+              <p className="mb-4 text-xs tracking-[0.16em] text-gold-soft uppercase">Хамт тохирох</p>
               <ul className="flex flex-wrap gap-2.5">
                 {suggestions.map((f) => (
                   <li key={f.slug}>
@@ -235,7 +236,7 @@ export function BouquetBuilder({ flowers, initialSlug }: { flowers: BuilderFlowe
 
         <Step index={3} title="Боодол">
           <fieldset className="min-w-0">
-            <legend className="mb-4 text-xs tracking-[0.25em] text-ivory/50 uppercase">Цаас</legend>
+            <legend className="mb-4 text-xs tracking-[0.16em] text-ivory/50 uppercase">Цаас</legend>
             <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
               {papers.map((p) => (
                 <label
@@ -260,7 +261,7 @@ export function BouquetBuilder({ flowers, initialSlug }: { flowers: BuilderFlowe
             </div>
           </fieldset>
           <fieldset className="mt-8 min-w-0">
-            <legend className="mb-4 text-xs tracking-[0.25em] text-ivory/50 uppercase">Туузны өнгө</legend>
+            <legend className="mb-4 text-xs tracking-[0.16em] text-ivory/50 uppercase">Туузны өнгө</legend>
             <div className="flex flex-wrap gap-5">
               {ribbons.map((r) => (
                 <label key={r.id} className="group flex cursor-pointer flex-col items-center gap-2">
@@ -334,7 +335,7 @@ export function BouquetBuilder({ flowers, initialSlug }: { flowers: BuilderFlowe
           type="button"
           onClick={add}
           disabled={!mounted || tooFew || over.length > 0}
-          className="bg-gold-soft px-6 py-3.5 text-xs tracking-[0.2em] text-plum-950 uppercase transition-colors duration-500 hover:bg-blush-100 disabled:cursor-not-allowed disabled:opacity-40"
+          className="btn-primary disabled:cursor-not-allowed disabled:opacity-40"
         >
           Сагсанд нэмэх
         </button>
@@ -361,7 +362,7 @@ function Step({ index, title, aside, children }: { index: number; title: string;
     <section>
       <div className="mb-6 flex items-baseline justify-between gap-4 border-b border-ivory/10 pb-4">
         <h2 className="flex items-baseline gap-4">
-          <span className="text-xs tracking-[0.3em] text-gold-soft tabular-nums">{String(index).padStart(2, "0")}</span>
+          <span className="text-xs tracking-[0.16em] text-gold-soft tabular-nums">{String(index).padStart(2, "0")}</span>
           <span className="font-display text-3xl font-light">{title}</span>
         </h2>
         {aside && <p className="text-xs tracking-[0.2em] text-ivory/45 uppercase tabular-nums">{aside}</p>}
@@ -443,7 +444,7 @@ function Summary({ lines, total, stemCount, tooFew, over, disabled, onAdd }: Sum
         ))}
       </ul>
       <div className="mt-4 flex items-baseline justify-between border-t border-ivory/10 pt-4">
-        <span className="text-xs tracking-[0.25em] text-ivory/50 uppercase">Нийт</span>
+        <span className="text-xs tracking-[0.16em] text-ivory/50 uppercase">Нийт</span>
         <span aria-live="polite" className="font-display text-4xl text-gold-soft tabular-nums">
           {formatPrice(total)}
         </span>
@@ -452,7 +453,7 @@ function Summary({ lines, total, stemCount, tooFew, over, disabled, onAdd }: Sum
         type="button"
         onClick={onAdd}
         disabled={disabled}
-        className="mt-5 w-full bg-gold-soft px-8 py-4 text-xs tracking-[0.2em] text-plum-950 uppercase transition-colors duration-500 hover:bg-blush-100 disabled:cursor-not-allowed disabled:opacity-40"
+        className="mt-5 w-full btn-primary disabled:cursor-not-allowed disabled:opacity-40"
       >
         Баглааг сагсанд нэмэх
       </button>

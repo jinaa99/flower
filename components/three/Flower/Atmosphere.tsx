@@ -22,7 +22,8 @@ type Props = {
   reducedMotion: boolean;
 };
 
-const PALETTE = ["#E8B4BC", "#D9577E", "#FF8FB4", "#C9A87C", "#B83A6B", "#F6DDE0"].map((h) => new THREE.Color(h));
+/** Дулаан, ханалт багатай — neon ягаан биш, гэрлийн тоос мэт */
+const PALETTE = ["#F3D9D4", "#E9C6B0", "#C9AE84", "#F4ECE2", "#D9A3A8"].map((h) => new THREE.Color(h));
 
 const vertexShader = /* glsl */ `
   uniform float uTime;
@@ -77,11 +78,10 @@ const fragmentShader = /* glsl */ `
       float ring = smoothstep(0.55, 0.9, r) * disk;
       a = (disk * exp(-r * r * 1.6) * 0.2 + ring * 0.05) * uBokeh;
     } else {
-      // Тоосонцор: хурц төв + зөөлөн гэрэл + нарийн од туяа
-      float core = exp(-r * r * 18.0);
-      float halo = exp(-r * r * 3.0) * 0.25;
-      float rays = (exp(-abs(c.x) * 22.0) + exp(-abs(c.y) * 22.0)) * (1.0 - r) * 0.35;
-      a = (core + halo + rays) * uSparkle;
+      // Тоосонцор: гэрлийн туяанд хөвөх тоос — зөөлөн цэг, од туяагүй
+      float core = exp(-r * r * 14.0);
+      float halo = exp(-r * r * 3.0) * 0.15;
+      a = (core + halo) * uSparkle;
     }
     gl_FragColor = vec4(vColor * a * vAlpha, 1.0);
   }

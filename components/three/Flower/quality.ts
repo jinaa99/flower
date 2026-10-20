@@ -21,46 +21,51 @@ export type Quality = {
   grain: boolean;
   /** Бүтээгдэхүүний зургийн texture-ийн өргөн (px) */
   textureWidth: number;
+  /** Key гэрлийн сүүдрийн map (px) — дэлбээ бие биен дээрээ сүүдэр тусгана */
+  shadowMap: number;
 };
 
 const TIERS: Record<QualityTier, Quality> = {
   0: {
     dpr: 1,
-    segments: 12,
-    drift: 24,
-    bokeh: 18,
-    sparkles: 50,
+    segments: 16,
+    drift: 16,
+    bokeh: 8,
+    sparkles: 24,
     multisampling: 0,
     bloom: { enabled: false, levels: 4, resolutionScale: 0.5 },
     grain: false,
     textureWidth: 1080,
+    shadowMap: 512,
   },
   1: {
     dpr: 1.25,
-    segments: 16,
-    drift: 48,
-    bokeh: 32,
-    sparkles: 100,
+    segments: 26,
+    drift: 28,
+    bokeh: 12,
+    sparkles: 40,
     multisampling: 0,
     bloom: { enabled: true, levels: 5, resolutionScale: 0.5 },
     grain: false,
     textureWidth: 1920,
+    shadowMap: 1024,
   },
   2: {
     dpr: 1.75,
-    segments: 24,
-    drift: 72,
-    bokeh: 46,
-    sparkles: 150,
+    segments: 44,
+    drift: 40,
+    bokeh: 16,
+    sparkles: 60,
     multisampling: 4,
     bloom: { enabled: true, levels: 8, resolutionScale: 0.5 },
     grain: true,
     textureWidth: 1920,
+    shadowMap: 2048,
   },
 };
 
 /** Mobile-ийн дээд хязгаар — аль ч түвшинд эдгээрээс давахгүй */
-const MOBILE_CAP = { dpr: 1.5, segments: 16, drift: 36, bokeh: 26, sparkles: 80, levels: 5, textureWidth: 1080 } as const;
+const MOBILE_CAP = { dpr: 1.5, segments: 22, drift: 20, bokeh: 10, sparkles: 30, levels: 5, textureWidth: 1080, shadowMap: 1024 } as const;
 
 export function isMobileDevice() {
   return window.matchMedia("(pointer: coarse), (max-width: 767px)").matches;
@@ -80,6 +85,7 @@ export function getQuality(tier: QualityTier, mobile: boolean): Quality {
     bloom: { ...q.bloom, levels: Math.min(q.bloom.levels, MOBILE_CAP.levels) },
     grain: false,
     textureWidth: Math.min(q.textureWidth, MOBILE_CAP.textureWidth),
+    shadowMap: Math.min(q.shadowMap, MOBILE_CAP.shadowMap),
   };
 }
 

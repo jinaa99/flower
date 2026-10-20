@@ -33,15 +33,14 @@ export function Backdrop({ inner, outer }: Props) {
           return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
         }
         void main() {
-          // Цэцгийн ард (баруун дээд) өргөн зөөлөн гэрэл + жижиг халуун цөм
-          vec2 p = (vUv - vec2(0.6, 0.58)) * vec2(1.0, 1.15);
+          // Кино мэт: цэцгийн ард (баруун дээд) зөөлөн гэрлийн тойрог, бусад нь бараг хар.
+          // Халуун цөм биш — өргөн, намуухан. Доод хэсэг шал мэт улам бараан.
+          vec2 p = (vUv - vec2(0.64, 0.6)) * vec2(1.0, 1.25);
           float d = length(p);
-          float glow = 1.0 - smoothstep(0.0, 0.85, d);
-          vec3 col = mix(uOuter, uInner, glow * glow);
-          col += uInner * 1.1 * exp(-d * d * 10.0);
-          // Зүүн доод буланд бүдэг хоёрдогч гэрэл — гүн мэдрэмж
-          float d2 = length((vUv - vec2(0.08, 0.1)) * vec2(1.0, 1.3));
-          col += uInner * 0.35 * exp(-d2 * d2 * 7.0);
+          float pool = exp(-d * d * 4.2);
+          vec3 col = mix(uOuter, uInner, pool);
+          col += uInner * 0.28 * exp(-d * d * 16.0);
+          col *= mix(0.72, 1.0, smoothstep(0.0, 0.5, vUv.y));
           // 8-bit gradient-ийн banding-ийг арилгах dithering
           col += (hash(gl_FragCoord.xy) - 0.5) / 255.0;
           gl_FragColor = vec4(col, 1.0);

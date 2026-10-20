@@ -60,7 +60,7 @@ export function BloomLoader({ visible, className }: Props) {
           <circle cy="-6" r="3.2" fill="#C9A87C" className="bloom-heart" />
         </g>
       </svg>
-      <span className="text-[0.6rem] tracking-[0.35em] text-ivory/45 uppercase">Дэлбээлж байна</span>
+      <span className="text-[0.6rem] tracking-[0.16em] text-ivory/45 uppercase">Дэлбээлж байна</span>
     </div>
   );
 }

@@ -35,8 +35,6 @@ export function Stamens({ center }: { center: FlowerSpec["center"] }) {
         roughness: 0.55,
         sheen: 0.6,
         sheenColor: new THREE.Color("#F3D58A"),
-        emissive: new THREE.Color("#5A3A10"),
-        emissiveIntensity: 0.25,
       }),
       pistil: new THREE.MeshPhysicalMaterial({ color: P.color, roughness: 0.45, sheen: 0.5, sheenColor: new THREE.Color("#F6DDE0") }),
     }),
@@ -96,11 +94,11 @@ export function Stamens({ center }: { center: FlowerSpec["center"] }) {
     <group>
       {S.count > 0 && (
         <>
-          <instancedMesh ref={filaments} args={[geometries.filament, materials.filament, S.count]} />
-          <instancedMesh ref={anthers} args={[geometries.anther, materials.anther, S.count]} />
+          <instancedMesh ref={filaments} args={[geometries.filament, materials.filament, S.count]} receiveShadow />
+          <instancedMesh ref={anthers} args={[geometries.anther, materials.anther, S.count]} castShadow receiveShadow />
         </>
       )}
-      {P.count > 0 && <instancedMesh ref={pistils} args={[geometries.pistil, materials.pistil, P.count]} />}
+      {P.count > 0 && <instancedMesh ref={pistils} args={[geometries.pistil, materials.pistil, P.count]} castShadow receiveShadow />}
     </group>
   );
 }

@@ -1,65 +1,92 @@
-import { BouquetCta } from "@/components/home/BouquetCta";
-import { CollectionRail } from "@/components/home/CollectionRail";
-import { DeliverySection } from "@/components/home/DeliverySection";
-import { LanguageSection } from "@/components/home/LanguageSection";
-import { Spotlight, type SpotlightData, type SpotlightImage } from "@/components/home/Spotlight";
-import type { Flower } from "@/data/flowers";
+import { BouquetCta, type AtelierImage } from "@/components/home/BouquetCta";
+import { FeaturedCollection } from "@/components/home/FeaturedCollection";
+import { Finale } from "@/components/home/Finale";
+import { LanguageSection, type BotanicalPlate } from "@/components/home/LanguageSection";
+import type { Flower, FlowerSlug } from "@/data/flowers";
 import { toCatalogItem } from "@/lib/catalog";
-import { getCoverImage, getDepthMap, getFlowers, getJourney } from "@/lib/data";
-import { capitalize } from "@/lib/utils";
+import { getCoverImage, getDepthMap, getFlowers, getJourney, type CoverImage } from "@/lib/data";
 import { HomeHero } from "./HomeHero";
 
-/** Онцлох цэцэг, баглааны урилгын зураг (depth map-тай) */
-const SPOTLIGHT = "rose";
-const BOUQUET_IMAGE = { slug: "peony", index: 2 } as const;
+/**
+ * Нүүрний зургийн сонголт (цэцэг + зургийн индекс). Бүгд бараан дэвсгэртэй макро зураг —
+ * нэг уур амьсгалтай боловч цэцэг бүр өөрийн өнгөөр.
+ */
+const PLATES: { slug: FlowerSlug; image: number }[] = [
+  { slug: "ranunculus", image: 0 },
+  { slug: "calla", image: 2 },
+  { slug: "iris", image: 1 },
+  { slug: "sunflower", image: 1 },
+];
+const FEATURED: { slug: FlowerSlug; image: number }[] = [
+  { slug: "rose", image: 2 },
+  { slug: "peony", image: 0 },
+  { slug: "orchid", image: 0 },
+  { slug: "hydrangea", image: 1 },
+  { slug: "lisianthus", image: 1 },
+];
+/** Ателье: гараар боосон бодит баглаа; төгсгөл: харанхуйгаас тодрох цээнэний баглаа */
+const ATELIER = { slug: "spray-rose", image: 1 } as const;
+const FINALE = { slug: "peony", image: 1 } as const;
 
-// Нүүр хуудас — scroll-driven 3D аялал (ард нь fixed Canvas), дараа нь HTML хэсгүүд.
+// Нүүр: A–B 3D аялал (hero → дэлбээлэлт → бүтээгдэхүүн), C Цэцгийн хэл, D Цуглуулга,
+// E Ателье, F Төгсгөлийн кадр. Hero-гийн дараах хэсгүүд fixed Canvas-ийг дэвсгэрээрээ халхална.
 export default async function Home() {
   const [stops, flowers] = await Promise.all([getJourney(), getFlowers()]);
-  const collection = [...flowers]
-    .sort((a, b) => b.popularity - a.popularity)
-    .slice(0, 10)
-    .map((f) => toCatalogItem(f, getCoverImage(f)));
-  const spotlight = flowers.find((f) => f.slug === SPOTLIGHT);
-  const bouquet = flowers.find((f) => f.slug === BOUQUET_IMAGE.slug);
+  const bySlug = new Map(flowers.map((f) => [f.slug, f]));
+  const pick = <T,>(list: readonly { slug: FlowerSlug; image: number }[], map: (f: Flower, i: number) => T) =>
+    list.flatMap(({ slug, image }) => {
+      const flower = bySlug.get(slug);
+      return flower ? [map(flower, image)] : [];
+    });
+
+  const plates = pick(PLATES, toPlate);
+  const featured = pick(FEATURED, (f, i) => ({
+    ...toCatalogItem(f, imageAt(f, i)),
+    depth: getDepthMap(f.slug, i),
+  }));
+  const atelier = bySlug.get(ATELIER.slug);
+  const finale = bySlug.get(FINALE.slug);
 
   return (
     <>
       <HomeHero stops={stops} />
 
-      {/* Hero-гийн дараах хэсгүүд Canvas-ийг дэвсгэрээрээ халхална */}
       <div className="relative z-10 bg-plum-950">
-        <LanguageSection />
-        <CollectionRail items={collection} />
-        {spotlight && <Spotlight data={toSpotlight(spotlight)} />}
-        <BouquetCta image={bouquet ? withDepth(bouquet, BOUQUET_IMAGE.index) : null} />
-        <DeliverySection />
+        <LanguageSection plates={plates} />
+        <FeaturedCollection items={featured} />
+        <BouquetCta image={atelier ? withDepth(atelier, ATELIER.image) : null} flowerCount={flowers.length} />
+        <Finale image={finale ? imageAt(finale, FINALE.image) : null} />
       </div>
     </>
   );
 }
 
-function withDepth(flower: Flower, index: number): SpotlightImage | null {
+/** Сонгосон индексийн зураг, байхгүй бол нүүр зураг */
+function imageAt(flower: Flower, index: number): CoverImage | null {
+  return flower.images[index] ?? getCoverImage(flower);
+}
+
+function withDepth(flower: Flower, index: number): AtelierImage | null {
   const image = flower.images[index];
   return image ? { ...image, depth: getDepthMap(flower.slug, index) } : null;
 }
 
-function toSpotlight(flower: Flower): SpotlightData {
-  const [min, max] = flower.care.vaseLifeDays;
-  const smallest = flower.pricing.sizes.reduce((a, b) => (b.price < a.price ? b : a));
-  const cover = getCoverImage(flower);
-  const images = flower.images.map((_, i) => withDepth(flower, i)!);
+function toPlate(flower: Flower, index: number): BotanicalPlate {
   return {
     slug: flower.slug,
     nameMn: flower.nameMn,
     nameEn: flower.nameEn,
+    latinName: flower.latinName,
     meaning: flower.meaning,
-    facts: [
-      { label: "Тохиолдол", value: flower.occasions.slice(0, 2).map(capitalize).join(", ") },
-      { label: "Улирал", value: flower.pricing.deliveryNote.split(".")[0] },
-      { label: "Ваазанд", value: `${min}–${max} хоног` },
-    ],
-    smallest,
-    images: images.length ? images : cover ? [{ ...cover, depth: null }] : [],
+    origin: firstSentence(flower.origin),
+    // «Улирлын цэцэг (5–7-р сар), бусад үед …. Улаанбаатар …» → «Улирлын цэцэг (5–7-р сар)»
+    season: flower.pricing.deliveryNote.split(".")[0].split(",")[0],
+    colors: flower.colors,
+    image: imageAt(flower, index)!,
   };
+}
+
+function firstSentence(text: string) {
+  const end = text.search(/\.(\s|$)/);
+  return end === -1 ? text : text.slice(0, end + 1);
 }

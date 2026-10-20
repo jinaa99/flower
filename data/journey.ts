@@ -8,10 +8,18 @@ import { lilySpec, peonySpec, roseSpec, tulipSpec, type FlowerSpec } from "./flo
 /** Гарчиг: title = [өмнөх текст, онцолсон (italic blush), дараах текст] */
 export type StoryBeat = { eyebrow: string; title: readonly [string, string, string]; body: string };
 
+/**
+ * Нүүрний гэрэл зургийн аялал: `flowerImages`-ийн индекс. hero — бүтэн кадрын 2.5D (depth) зураг,
+ * detail — дээр нь давхарласан жижиг дэлгэрэнгүй зураг. tone — хэсгийн гэрэл (light бол бараан текст).
+ */
+export type JourneyPhoto = { hero: number; detail?: number; tone: "dark" | "light" };
+
 export type JourneyStop = {
   slug: FlowerSlug;
-  /** Дэлбээлэлтийн үеийн гарчгууд */
+  /** Хэсгийн гарчгууд (эхнийх нь hero) */
   story: readonly StoryBeat[];
+  photo: JourneyPhoto;
+  /** Дэлгэрэнгүй хуудасны 3D preview */
   spec: Omit<FlowerSpec, "image">;
 };
 
@@ -25,32 +33,36 @@ export const journeyStops: JourneyStop[] = [
         body: "Хайр, талархал, амьдралын онцгой мөчүүдэд зориулж гараар бүтээсэн тансаг баглаа.",
       },
       { eyebrow: "Цээнэ · Peony", title: ["Цээнэ — ", "эрхэмсэг", " баяр баясгалан"], body: "Давхар дэлбээ бүрд хаврын зөөлөн гэрэл нуугдана." },
-      { eyebrow: "Бүрэн дэлбээлсэн", title: ["Сэтгэлээ илэрхийлэх ", "эелдэг", " үг"], body: "Цааш гүйлгэж, цэцгийн зүрх рүү орно уу." },
+      { eyebrow: "Бүрэн дэлбээлсэн", title: ["Сэтгэлээ илэрхийлэх ", "эелдэг", " үг"], body: "Өглөө бүр шинээр ирсэн цээнэг цэцэгчин гараар сонгоно." },
     ],
+    photo: { hero: 1, detail: 2, tone: "dark" },
     spec: peonySpec,
   },
   {
     slug: "rose",
     story: [
       { eyebrow: "Сарнай · Rose", title: ["Сарнай — ", "хайрын", " мөнхийн хэл"], body: "Дэлбээ бүр нэгнээ тэвэрч, ороомог хэлбэрээр нээгдэнэ." },
-      { eyebrow: "Дэлбээлэлт", title: ["Гүн ", "улаан", " өнгийн нууц"], body: "Цааш гүйлгэж, сарнайн зүрх рүү орно уу." },
+      { eyebrow: "Дэлбээлэлт", title: ["Гүн ", "улаан", " өнгийн нууц"], body: "Хилэн дэлбээ бүрд гүн улаан өнгө нуугдана." },
     ],
+    photo: { hero: 1, detail: 0, tone: "dark" },
     spec: roseSpec,
   },
   {
     slug: "tulip",
     story: [
       { eyebrow: "Алтанзул · Tulip", title: ["Алтанзул — ", "хаврын", " анхны гэрэл"], body: "Зургаан дэлбээ аяга мэт нийлж, нарны илчийг хадгална." },
-      { eyebrow: "Дэлбээлэлт", title: ["Энгийн, ", "төгс", " хэлбэр"], body: "Цааш гүйлгэж, аяганы гүн рүү орно уу." },
+      { eyebrow: "Дэлбээлэлт", title: ["Энгийн, ", "төгс", " хэлбэр"], body: "Хаврын анхны гэрэл шиг цэвэр, даруу." },
     ],
+    photo: { hero: 0, detail: 2, tone: "light" },
     spec: tulipSpec,
   },
   {
     slug: "lily",
     story: [
       { eyebrow: "Зэрлэг сараана · Martagon lily", title: ["Сараана — ", "тал нутгийн", " сүлд"], body: "Урт дэлбээнүүд нь гадагш эргэж, оддын гэрэл мэт цацарна." },
-      { eyebrow: "Дэлбээлэлт", title: ["Зэрлэг ", "эрх чөлөө", ""], body: "Цааш гүйлгэж, сараанын зүрх рүү орно уу." },
+      { eyebrow: "Дэлбээлэлт", title: ["Зэрлэг ", "эрх чөлөө", ""], body: "Монголын тал нутагт зэрлэгээр ургадаг ховор цэцэг." },
     ],
+    photo: { hero: 0, tone: "light" },
     spec: lilySpec,
   },
 ];

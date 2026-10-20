@@ -82,7 +82,7 @@ export function FilterSheet({ open, onClose, resultCount, onClear, children }: P
           <button
             type="button"
             onClick={onClose}
-            className="ml-auto flex-1 bg-gold-soft px-6 py-3.5 text-xs tracking-[0.2em] text-plum-950 uppercase tabular-nums transition-colors duration-500 hover:bg-blush-100"
+            className="ml-auto flex-1 btn-primary tabular-nums"
           >
             {resultCount ? `${resultCount} цэцэг харах` : "Үр дүн алга"}
           </button>

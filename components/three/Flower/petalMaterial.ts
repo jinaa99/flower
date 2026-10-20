@@ -1,7 +1,7 @@
 "use client";
 
 import * as THREE from "three";
-import type { Outline, PetalColors } from "@/data/flowerSpecs";
+import type { Outline, PetalColors, PetalSpots } from "@/data/flowerSpecs";
 import { createWindUniforms, windVertexPars } from "./wind";
 
 /**
@@ -38,10 +38,13 @@ export type PetalPalette = {
   leaf: number;
   /** x: хамгийн өргөн цэгийн exponent, y: үзүүрийн бөөрөнхий (бага = мохоо), z: ёроолын өргөн */
   shape: THREE.Vector3;
+  /** Дэлбээний толбо (зэрлэг сараана) — amount 0 бол байхгүй */
+  spot: THREE.Color;
+  spotAmount: number;
 };
 
 /** FlowerSpec-ийн hex өнгө + outline → shader-ийн palette (дэлбээ, sepal, навч) */
-export function createPalette(colors: PetalColors, outline: Outline, leaf = 0): PetalPalette {
+export function createPalette(colors: PetalColors, outline: Outline, leaf = 0, spots?: PetalSpots): PetalPalette {
   const c = (hex: string) => new THREE.Color(hex);
   return {
     base: c(colors.base),
@@ -52,6 +55,8 @@ export function createPalette(colors: PetalColors, outline: Outline, leaf = 0): 
     sheen: c(colors.sheen),
     leaf,
     shape: new THREE.Vector3(...outline),
+    spot: c(spots?.color ?? colors.base),
+    spotAmount: spots?.amount ?? 0,
   };
 }
 
@@ -66,6 +71,10 @@ export function createSharedPetalUniforms() {
     uHeart: { value: 0 },
     /** Шүүдрийн дуслын нягтрал (0 = байхгүй) */
     uDew: { value: 0 },
+    /** Цэцгийн голын гүн сүүдэр (0–1): дотор талын дэлбээ бие биеэ халхална */
+    uCavity: { value: 0 },
+    /** Цэцгийн толгойн (дэлбээний ёроол) world байрлал — WindDriver кадр бүр бичнэ */
+    uHeadCenter: { value: new THREE.Vector3() },
     ...createWindUniforms(),
   };
 }
@@ -91,6 +100,8 @@ function createOwnUniforms(palette: PetalPalette, seed: number) {
     uVeinTint: { value: palette.veinTint.clone() },
     uTransColor: { value: palette.trans.clone() },
     uLeaf: { value: palette.leaf },
+    uSpotColor: { value: palette.spot.clone() },
+    uSpotAmount: { value: palette.spotAmount },
   };
 }
 export type PetalUniforms = ReturnType<typeof createOwnUniforms>;
@@ -106,8 +117,10 @@ uniform float uCurl;
 uniform float uRuffle;
 uniform float uSeed;
 uniform vec3 uShape;
+uniform vec3 uHeadCenter;
 varying vec2 vPetalUv;
 varying float vPetalSeed;
+varying float vCavity;
 // Энгийн дэлбээнд uSeed, урсах дэлбээнд (instanced) instance бүрийн seed
 float petalSeed;
 #ifdef PETAL_DRIFT
@@ -119,8 +132,14 @@ const float CURL_START = 0.38;
 
 // Дэлбээний локал орон зай: ёроол нь эх цэгт, урт нь +Y, дотор (хотгор) тал нь +Z.
 vec3 petalShape(vec2 st) {
-  float v = clamp(st.y, 0.0, 1.0);
   float xn = st.x * 2.0 - 1.0;
+  // Бодит дэлбээний үзүүр жигд нум биш: зөөлөн долгиолсон, тэгш бус контур (дэлбээ бүрт өөр).
+  // Ruffle-тай пропорциональ — цээнэд тод, сарнай/сараанад бараг үгүй. Outline хаалттай хэвээр;
+  // зөвхөн уртыг өргөний дагуу өөр өөрөөр богиносгоно (үзүүрийг таслахгүй — нугалаас үүсгэхгүй).
+  float v = clamp(st.y, 0.0, 1.0);
+  float ph0 = petalSeed * 6.2831;
+  float jag = uRuffle * (0.03 + 0.03 * sin(xn * 5.0 + ph0) + 0.006 * sin(xn * 11.0 + ph0 * 2.7));
+  float L = uLength * (1.0 - jag * smoothstep(0.55, 1.0, v));
 
   // Outline: ёроолд нарийн (claw), uShape.x-ээр тодорхойлсон цэгт хамгийн өргөн, үзүүрт бөөрөнхий
   float prof = pow(max(sin(PI * pow(v, uShape.x)), 0.0), uShape.y);
@@ -136,14 +155,15 @@ vec3 petalShape(vec2 st) {
   // Ruffle: ирмэг болон үзүүрт л долгионтоно
   float edge = max(smoothstep(0.45, 1.0, abs(xn)), smoothstep(0.55, 1.0, v)) * smoothstep(0.1, 0.45, v);
   float ph = petalSeed * 6.2831;
-  float wave = sin(v * 19.0 + xn * 2.0 + ph) * 0.55
-             + sin(v * 37.0 - xn * 7.0 + ph * 1.7) * 0.25
-             + sin(xn * 21.0 + ph * 2.3) * 0.35 * smoothstep(0.6, 1.0, v);
+  // Бага давтамжтай том долгион + ирмэгийн нарийн атираа. Өндөр давтамж нь segment-ийн
+  // нягтралаас хэтэрвэл ирмэг шаантаг шиг харагддаг тул сулруулсан.
+  float wave = sin(v * 13.0 + xn * 2.0 + ph) * 0.6
+             + sin(v * 27.0 - xn * 5.0 + ph * 1.7) * 0.18
+             + sin(xn * 15.0 + ph * 2.3) * 0.14 * smoothstep(0.6, 1.0, v);
   float rz = uRuffle * edge * wave * 0.1 * uWidth;
 
   // Curl: CURL_START-аас дээш нурууны шугам тогтмол муруйлтаар нугарна.
   // Эерэг = гадагш (-Z), сөрөг = дотогш (нахиа, төвийн дэлбээ бөмбөлөг болж хаагдана)
-  float L = uLength;
   float bend = max(v - CURL_START, 0.0) * L;
   float kc = uCurl * 2.4 / ((1.0 - CURL_START) * L);
   float a = kc * bend;
@@ -186,6 +206,15 @@ vec3 objectNormal = normalize(cross(dU, dV));
 vPetalUv = uv;
 `;
 
+// Толгойн төвөөс хол байх тусам гэгээтэй — урсах дэлбээнд хамаарахгүй
+const vertexCavity = /* glsl */ `
+#ifdef PETAL_DRIFT
+vCavity = 1.0;
+#else
+vCavity = smoothstep(0.04, 0.6, length((modelMatrix * vec4(transformed, 1.0)).xyz - uHeadCenter));
+#endif
+`;
+
 const fragmentPars = /* glsl */ `
 uniform vec3 uBaseColor;
 uniform vec3 uMidColor;
@@ -199,11 +228,27 @@ uniform float uLeaf;
 uniform float uGlow;
 uniform float uHeart;
 uniform float uDew;
+uniform float uCavity;
+uniform vec3 uSpotColor;
+uniform float uSpotAmount;
 varying vec2 vPetalUv;
 varying float vPetalSeed;
+varying float vCavity;
 #ifdef PETAL_DRIFT
 varying float vDriftFade;
 #endif
+
+// Өнгөний органик толбо — дэлбээ бүр хэвлэсэн мэт жигд биш
+float petalNoise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  float a = fract(sin(dot(i, vec2(127.1, 311.7))) * 43758.5453);
+  float b = fract(sin(dot(i + vec2(1.0, 0.0), vec2(127.1, 311.7))) * 43758.5453);
+  float c = fract(sin(dot(i + vec2(0.0, 1.0), vec2(127.1, 311.7))) * 43758.5453);
+  float d = fract(sin(dot(i + vec2(1.0, 1.0), vec2(127.1, 311.7))) * 43758.5453);
+  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
 
 vec2 dewHash(vec2 p) {
   p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
@@ -246,16 +291,34 @@ vec3 petalCol = mix(uBaseColor, uMidColor, smoothstep(0.0, 0.4, pv));
 petalCol = mix(petalCol, uTipColor, smoothstep(0.3, 0.88, pv));
 
 // Дэлбээ: ёроолоос сэвэлгэр нарийн судал. Навч: гол судал + хажуугийн судал.
-float petalVein = veinLine(pxn * 16.0 + 0.35 * sin(pv * 11.0 + vPetalSeed * 40.0 + pxn * 3.0), 0.05);
+// Судал: цөөн, зөөлөн, ёроолоос сэвэлгэр — нарийн давтамжтай бол даавуу мэт харагддаг
+float petalVein = veinLine(pxn * 9.0 + 0.3 * sin(pv * 7.0 + vPetalSeed * 40.0 + pxn * 2.0), 0.12);
 float midrib = 1.0 - smoothstep(0.0, 0.03 + fwidth(pxn), abs(pxn));
 float lateral = veinLine((pv - abs(pxn) * 0.45) * 9.0, 0.04) * smoothstep(0.03, 0.08, abs(pxn));
 float vein = mix(petalVein, max(midrib, lateral * 0.7), uLeaf);
 vein *= uVeins * (1.0 - smoothstep(0.75, 1.0, pv));
 petalCol = mix(petalCol, petalCol * uVeinTint / max(uMidColor, vec3(1e-3)), vein * 0.6);
 
-// Дэлбээ бүрийн бага зэргийн ялгаа + ёроолын хуурамч ambient occlusion
-petalCol *= 0.94 + 0.12 * fract(vPetalSeed * 7.13);
+// Дэлбээ бүрийн бага зэргийн ялгаа, гадаргуугийн зөөлөн толбо, ёроолын хуурамч ambient occlusion
+petalCol *= 0.92 + 0.14 * fract(vPetalSeed * 7.13);
+float mottle = petalNoise(vPetalUv * vec2(5.0, 9.0) + vPetalSeed * 23.0) * 0.6
+             + petalNoise(vPetalUv * vec2(13.0, 21.0) - vPetalSeed * 11.0) * 0.4;
+petalCol *= 0.9 + 0.2 * mottle * (1.0 - uLeaf * 0.5);
+
+// Толбо (Lilium martagon): дэлбээний доод хагаст, ирмэгээс хол
+if (uSpotAmount > 0.0) {
+  vec2 sg = vPetalUv * vec2(6.0, 15.0) + vPetalSeed * 13.0;
+  vec2 sc = floor(sg);
+  vec2 sh = dewHash(sc);
+  float sr = mix(0.1, 0.24, sh.y);
+  float sd = length(fract(sg) - (0.25 + 0.5 * dewHash(sc + 3.1)));
+  float spot = (1.0 - smoothstep(sr - fwidth(sd), sr, sd)) * step(sh.x, uSpotAmount);
+  spot *= smoothstep(0.06, 0.18, pv) * (1.0 - smoothstep(0.42, 0.62, pv)) * (1.0 - smoothstep(0.55, 0.85, abs(pxn)));
+  petalCol = mix(petalCol, uSpotColor, spot * 0.9);
+}
 petalCol *= mix(1.0, 0.3 + 0.7 * smoothstep(0.0, 0.5, pv), uAO);
+// Голын гүн: дотор давхарга, дэлбээний ёроол халхлагдана (навчинд үгүй)
+petalCol *= mix(1.0, mix(0.45, 1.0, vCavity), uCavity * (1.0 - uLeaf));
 
 diffuseColor.rgb *= petalCol;
 #ifdef PETAL_DRIFT
@@ -301,15 +364,18 @@ const fragmentDewNormal = /* glsl */ `
 const fragmentTranslucency = /* glsl */ `
 {
   // Нимгэн гадаргуу: ар талаас тусах гэрэл дэлбээгээр нэвтэрч, ирмэг/үзүүр (хамгийн нимгэн) илүү гэрэлтэнэ
-  float thin = 0.55 + 0.45 * max(smoothstep(0.5, 1.0, abs(pxn)), smoothstep(0.5, 1.0, pv));
-  vec3 transAlbedo = diffuseColor.rgb * uTransColor * thin * uTranslucency;
+  // Нимгэн гадаргуугаар нэвтэрсэн гэрэл нь дэлбээний өөрийн өнгөөр (trans нь зөвхөн бага зэрэг дулаацуулна).
+  // Өнгийг урдаас тусах diffuse гэрэл авч явна — нэвтрэлт нь ар талаас гэрэлтэх үед л.
+  float thin = 0.85 + 0.15 * max(smoothstep(0.6, 1.0, abs(pxn)), smoothstep(0.6, 1.0, pv));
+  vec3 transAlbedo = diffuseColor.rgb * mix(vec3(1.0), uTransColor, 0.45) * thin * uTranslucency;
   #if NUM_DIR_LIGHTS > 0
   for (int i = 0; i < NUM_DIR_LIGHTS; i++) {
     vec3 Ld = directionalLights[i].direction;
     float back = saturate(dot(-geometryNormal, Ld));
     vec3 H = normalize(Ld + geometryNormal * 0.3);
     float fwd = pow(saturate(dot(geometryViewDir, -H)), 4.0);
-    reflectedLight.directDiffuse += transAlbedo * directionalLights[i].color * (back * 0.4 + fwd * 0.8);
+    // Гүн дэх дэлбээгээр гэрэл бараг нэвтрэхгүй — нэвтрэлт гадна ирмэгт л тодорно
+    reflectedLight.directDiffuse += transAlbedo * directionalLights[i].color * (back * 0.3 + fwd * 0.22) * mix(0.25, 1.0, vCavity);
     #ifndef PETAL_DRIFT
     // Шүүдрийн гялбаа: хурц specular — bloom-оор од мэт гэрэлтэнэ
     if (dew.z > 0.0) {
@@ -326,27 +392,37 @@ const fragmentTranslucency = /* glsl */ `
   float rimEdge = smoothstep(0.7, 1.0, abs(pxn)) * smoothstep(0.15, 0.55, pv) + smoothstep(0.82, 1.0, pv) * 0.6;
   // Ханасан ягаан туяа (цагаан болж «сүүн» харагдахаас сэргийлнэ)
   vec3 glowTint = mix(uMidColor, uTransColor, 0.35) * mix(vec3(1.0), uBaseColor / max(uMidColor, vec3(1e-3)), 0.3);
-  totalEmissiveRadiance += glowTint * (fres * 0.9 + rimEdge * 0.45) * uGlow * leafDim;
+  totalEmissiveRadiance += glowTint * (fres * 0.9 + rimEdge * 0.2) * uGlow * leafDim;
   float heart = (1.0 - smoothstep(0.0, 0.42, pv)) * (1.0 - uLeaf);
   totalEmissiveRadiance += mix(uTransColor, vec3(1.0, 0.86, 0.62), 0.35) * heart * heart * uHeart;
 }
 `;
 
-type WithUniforms = THREE.MeshPhysicalMaterial & { userData: { uniforms: Record<string, THREE.IUniform> } };
+/** Material бүр өөрийн (+ хуваалцсан) uniform-уудыг userData-д хадгална — compile үед shader-т холбогдоно */
+const uniformsOf = (m: THREE.Material) => m.userData.uniforms as Record<string, THREE.IUniform>;
 
 // Module-level функц — toString() бүх material-д ижил тул program cache хуваалцана.
-function onBeforeCompile(this: WithUniforms, shader: THREE.WebGLProgramParametersWithUniforms) {
-  Object.assign(shader.uniforms, this.userData.uniforms);
+function onBeforeCompile(this: THREE.Material, shader: THREE.WebGLProgramParametersWithUniforms) {
+  Object.assign(shader.uniforms, uniformsOf(this));
   shader.vertexShader = shader.vertexShader
     .replace("#include <common>", `#include <common>\n${vertexPars}`)
     .replace("#include <beginnormal_vertex>", vertexNormal)
-    .replace("#include <begin_vertex>", "vec3 transformed = petalPos;");
+    .replace("#include <begin_vertex>", "vec3 transformed = petalPos;")
+    .replace("#include <project_vertex>", `#include <project_vertex>\n${vertexCavity}`);
   shader.fragmentShader = shader.fragmentShader
     .replace("#include <common>", `#include <common>\n${fragmentPars}`)
     .replace("#include <color_fragment>", `#include <color_fragment>\n${fragmentColor}`)
     .replace("#include <roughnessmap_fragment>", `#include <roughnessmap_fragment>\n${fragmentDewRoughness}`)
     .replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>\n${fragmentDewNormal}`)
     .replace("#include <lights_fragment_end>", `#include <lights_fragment_end>\n${fragmentTranslucency}`);
+}
+
+// Сүүдрийн depth pass: ижил хэлбэр (petalShape) — дэлбээ бие биен дээрээ бодит сүүдэр тусгана
+function onBeforeCompileDepth(this: THREE.Material, shader: THREE.WebGLProgramParametersWithUniforms) {
+  Object.assign(shader.uniforms, uniformsOf(this));
+  shader.vertexShader = shader.vertexShader
+    .replace("#include <common>", `#include <common>\n${vertexPars}`)
+    .replace("#include <begin_vertex>", "petalSeed = uSeed;\nvec3 transformed = petalShape(uv);");
 }
 
 /**
@@ -371,9 +447,18 @@ export function createPetalMaterial(
     side: THREE.DoubleSide,
     transparent: drift,
     depthWrite: !drift,
-  }) as WithUniforms;
+  });
   if (drift) material.defines = { PETAL_DRIFT: "" };
   material.userData.uniforms = { ...uniforms, ...shared };
   material.onBeforeCompile = onBeforeCompile;
-  return { material, uniforms };
+
+  // Урсах дэлбээ сүүдэр тусгахгүй
+  const depthMaterial = drift
+    ? undefined
+    : new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, side: THREE.DoubleSide });
+  if (depthMaterial) {
+    depthMaterial.userData.uniforms = material.userData.uniforms;
+    depthMaterial.onBeforeCompile = onBeforeCompileDepth;
+  }
+  return { material, uniforms, depthMaterial };
 }

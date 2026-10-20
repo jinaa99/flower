@@ -39,22 +39,23 @@ export function ProductCard({ flower, stage, count, cover, className, ...rest }:
     <article
       {...rest}
       className={cn(
-        "glass relative w-full max-w-md overflow-hidden rounded-[2rem] p-8 shadow-glow-lg sm:p-10",
-        // Дээд ирмэгийн нарийн гэрэл
-        "before:absolute before:inset-x-10 before:top-0 before:h-px before:bg-linear-to-r before:from-transparent before:via-blush-100/50 before:to-transparent",
+        // Зургийн дээрх редакцын тайлбар: бараан, нарийн хүрээ — шилэн биш
+        "relative w-full max-w-md border border-ivory/10 bg-plum-950/85 p-8 backdrop-blur-sm sm:p-10",
         className,
       )}
     >
-      <p className="eyebrow mb-6 tabular-nums">
-        {pad(stage + 1)} / {pad(count)}
+      <p className="mb-6 text-[0.72rem] tracking-[0.12em] text-ivory/45 tabular-nums">
+        {pad(stage + 1)} <span className="text-ivory/25">/ {pad(count)}</span>
       </p>
-      <h2 className="font-display text-5xl leading-none font-light sm:text-6xl">{flower.nameMn}</h2>
-      <p className="mt-3 text-xs tracking-[0.3em] text-ivory/50 uppercase">{flower.nameEn}</p>
-      <p className="mt-6 text-ivory/60">{flower.meaning}</p>
-      <p className="mt-8 font-display text-3xl text-gold-soft">
-        {formatPrice(smallest.price)}
-        <span className="ml-2 font-sans text-xs tracking-[0.2em] text-ivory/45 uppercase">
-          {smallest.size} · {smallest.stems} ш
+      <h2 className="font-display text-5xl leading-none font-extralight sm:text-6xl">{flower.nameMn}</h2>
+      <p className="mt-3 font-display text-lg text-ivory/50 italic">
+        {flower.nameEn} · {flower.latinName}
+      </p>
+      <p className="mt-6 leading-relaxed text-ivory/65">{flower.meaning}</p>
+      <p className="mt-8 flex items-baseline gap-3 border-t border-ivory/10 pt-6">
+        <span className="font-display text-3xl font-light text-gold-soft tabular-nums">{formatPrice(smallest.price)}</span>
+        <span className="text-xs text-ivory/45">
+          {smallest.size} баглаа · {smallest.stems} иш
         </span>
       </p>
 
@@ -81,7 +82,7 @@ export function ProductCard({ flower, stage, count, cover, className, ...rest }:
       {last && (
         <Link
           href="/catalog"
-          className="group mt-10 flex items-center justify-between border-t border-ivory/10 pt-6 text-xs tracking-[0.25em] text-ivory/75 uppercase transition-colors duration-500 hover:text-blush-100"
+          className="group mt-10 flex items-center justify-between border-t border-ivory/10 pt-6 text-sm text-ivory/75 transition-colors duration-500 hover:text-ivory"
         >
           Бүх цэцгийг үзэх
           <span aria-hidden className="transition-transform duration-500 ease-bloom group-hover:translate-x-1">

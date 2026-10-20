@@ -1,10 +1,11 @@
 "use client";
 
 import { getImageProps } from "next/image";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { ProductCard } from "@/components/ui/ProductCard";
 import type { JourneyFlower } from "@/lib/data";
 import { isUnsplash, unsplashLoader } from "@/lib/unsplash";
+import { useReveal } from "@/lib/useReveal";
 import { cn } from "@/lib/utils";
 
 /** 1×1 тунгалаг gif — 3D аялал харагдах үед энэ хувилбарын зургийг огт татахгүй */
@@ -27,23 +28,7 @@ type Props = {
  */
 export function HomeStatic({ stops, forced, className }: Props) {
   const root = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const el = root.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (!entry.isIntersecting) continue;
-          entry.target.setAttribute("data-shown", "");
-          observer.unobserve(entry.target);
-        }
-      },
-      { rootMargin: "0px 0px -15% 0px" },
-    );
-    el.querySelectorAll(".reveal").forEach((node) => observer.observe(node));
-    return () => observer.disconnect();
-  }, []);
+  useReveal(root);
 
   return (
     <div ref={root} data-home="static" className={className}>
@@ -64,10 +49,10 @@ export function HomeStatic({ stops, forced, className }: Props) {
             />
             <div className="mx-auto grid w-full max-w-7xl gap-12 px-4 py-24 sm:px-8 lg:grid-cols-[1fr_auto] lg:items-end">
               <div className={cn("max-w-2xl", i > 0 && "reveal")}>
-                <p className="mb-6 text-xs tracking-[0.3em] text-gold-soft uppercase">{beat.eyebrow}</p>
-                <Heading className="font-display text-5xl leading-[0.95] font-light text-balance sm:text-7xl">
+                <p className="eyebrow mb-8">{beat.eyebrow}</p>
+                <Heading className="font-display text-[2.75rem] leading-[1.02] font-extralight text-balance sm:text-7xl">
                   {before}
-                  <em className="text-blush-300">{em}</em>
+                  <em className="font-light text-blush-100">{em}</em>
                   {after}
                 </Heading>
                 <p className="mt-8 max-w-md text-lg text-ivory/70">{beat.body}</p>

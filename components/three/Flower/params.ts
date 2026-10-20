@@ -23,6 +23,8 @@ export type FlowerParams = {
   heartGlow: number;
   /** Шүүдрийн дуслын нягтрал */
   dew: number;
+  /** Цэцгийн голын гүн сүүдэр (дэлбээ бие биеэ халхлах) */
+  cavity: number;
   // Агаар мандал: bokeh, гэрлийн тоосонцор
   bokeh: number;
   sparkles: number;
@@ -45,21 +47,24 @@ export const defaultFlowerParams: FlowerParams = {
   cupAmount: 1,
   curlAmount: 1,
   ruffle: 1,
-  sheen: 0.35,
+  // Velvet sheen + ар талын гэрлийн нэвтрэлт; emissive «гэрэлтэлт» бараг байхгүй — хуванцар биш, бодит
+  sheen: 0.3,
   translucency: 0.55,
-  veins: 0.55,
-  edgeGlow: 0.5,
-  heartGlow: 0.75,
-  dew: 0.24,
-  bokeh: 1,
-  sparkles: 1,
-  keyIntensity: 1,
-  rimIntensity: 1,
-  envIntensity: 1,
-  glow: 0.95,
-  glowThreshold: 0.72,
-  vignette: 0.55,
-  grain: 0.07,
+  veins: 0.3,
+  edgeGlow: 0,
+  heartGlow: 0.12,
+  dew: 0,
+  cavity: 0.6,
+  // Фокусаас гадуурх гэрэл, тоосонцор бараг байхгүй — макро гэрэл зурагт ийм зүйл байдаггүй
+  bokeh: 0,
+  sparkles: 0.12,
+  keyIntensity: 1.1,
+  rimIntensity: 0.75,
+  envIntensity: 0.5,
+  glow: 0.32,
+  glowThreshold: 0.86,
+  vignette: 0.62,
+  grain: 0.06,
   autoRotate: false,
 };
 
@@ -94,6 +99,7 @@ export const paramGroups: { title: string; controls: ParamControl[] }[] = [
       { key: "edgeGlow", label: "Ирмэгийн гэрэл", min: 0, max: 2, step: 0.01 },
       { key: "heartGlow", label: "Дотоод гэрэл", min: 0, max: 2, step: 0.01 },
       { key: "dew", label: "Шүүдэр", min: 0, max: 0.8, step: 0.01 },
+      { key: "cavity", label: "Гүн сүүдэр", min: 0, max: 1, step: 0.01 },
     ],
   },
   {

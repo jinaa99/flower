@@ -59,10 +59,11 @@ export type WindConfig = {
 };
 
 export const defaultWindConfig: WindConfig = {
-  strength: 0.3,
+  // Намуухан сэвшээ: цэцэг амьд боловч «анимэйшн хийгдсэн» мэт биш
+  strength: 0.22,
   direction: 20,
-  turbulence: 0.6,
-  frequency: 0.25,
+  turbulence: 0.5,
+  frequency: 0.2,
   gustStrength: 0.5,
   gustFrequency: 0.1,
   stemMass: 1,
@@ -76,7 +77,7 @@ export const defaultWindConfig: WindConfig = {
   petalResponse: 0.9,
   innerPetalMotion: 0.35,
   petalLag: 0.35,
-  flutter: 0.5,
+  flutter: 0.32,
   scrollInfluence: 1.2,
   scrollDirection: 0,
   scrollMaxVelocity: 45,

@@ -18,7 +18,7 @@ export function CartView({ catalog }: { catalog: CartFlower[] }) {
         <div className="flex flex-wrap gap-4">
           <Link
             href="/catalog"
-            className="bg-gold-soft px-8 py-4 text-xs tracking-[0.2em] text-plum-950 uppercase transition-colors duration-500 hover:bg-blush-100"
+            className="btn-primary"
           >
             Каталог үзэх
           </Link>
@@ -56,11 +56,11 @@ export function CartView({ catalog }: { catalog: CartFlower[] }) {
 
       <aside className="lg:sticky lg:top-[calc(var(--header-height)+2rem)] lg:self-start">
         <div className="border border-ivory/10 bg-plum-800/20 p-6 sm:p-8">
-          <p className="mb-6 text-xs tracking-[0.3em] text-gold-soft uppercase">Захиалгын дүн</p>
+          <p className="mb-6 text-xs tracking-[0.16em] text-gold-soft uppercase">Захиалгын дүн</p>
           <CartSummary totals={totals} />
           <Link
             href="/checkout"
-            className="mt-8 block bg-gold-soft px-8 py-4 text-center text-xs tracking-[0.2em] text-plum-950 uppercase transition-colors duration-500 hover:bg-blush-100"
+            className="mt-8 flex w-full btn-primary"
           >
             Захиалах
           </Link>

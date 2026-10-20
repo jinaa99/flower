@@ -62,7 +62,7 @@ export default async function FlowerPage(props: PageProps<"/flowers/[slug]">) {
         <ol className="flex flex-wrap items-center gap-2">
           <li>
             <Link href="/catalog" className="transition-colors hover:text-blush-100">
-              Каталог
+              Дэлгүүр
             </Link>
           </li>
           <li aria-hidden>/</li>
@@ -86,10 +86,11 @@ export default async function FlowerPage(props: PageProps<"/flowers/[slug]">) {
 
         {/* min-w-0: хүргэлтийн өдрүүдийн хэвтээ scroll баганыг өргөсгөхгүй */}
         <div className="min-w-0">
-          <p className="mb-5 text-xs tracking-[0.3em] text-gold-soft uppercase">{capitalize(flower.category)}</p>
-          <h1 className="font-display text-6xl leading-[0.95] font-light sm:text-7xl">{flower.nameMn}</h1>
-          <p className="mt-3 text-sm tracking-[0.3em] text-ivory/55 uppercase">{flower.nameEn}</p>
-          <p className="mt-2 font-display text-xl text-ivory/45 italic">{flower.latinName}</p>
+          <p className="mb-5 text-xs tracking-[0.16em] text-gold-soft uppercase">{capitalize(flower.category)}</p>
+          <h1 className="font-display text-6xl leading-[0.95] font-extralight sm:text-7xl">{flower.nameMn}</h1>
+          <p className="mt-4 font-display text-xl text-ivory/55 italic">
+            {flower.nameEn} <span className="text-ivory/30">·</span> {flower.latinName}
+          </p>
 
           <dl className="mt-10 space-y-6 border-t border-ivory/10 pt-8 text-sm">
             <Fact term="Өнгө">
@@ -120,7 +121,7 @@ export default async function FlowerPage(props: PageProps<"/flowers/[slug]">) {
             className="group mt-10 flex items-center justify-between gap-6 border border-ivory/10 bg-plum-800/20 px-6 py-5 transition-colors duration-500 hover:border-gold-soft/40"
           >
             <span>
-              <span className="block text-xs tracking-[0.25em] text-gold-soft uppercase">Өөрийн баглаа бүрдүүлэх</span>
+              <span className="block text-xs tracking-[0.16em] text-gold-soft uppercase">Өөрийн баглаа бүрдүүлэх</span>
               <span className="mt-1.5 block text-sm text-ivory/60">
                 {flower.nameMn} болон бусад цэцгээр өвөрмөц баглаа бүтээгээрэй
               </span>
@@ -137,17 +138,17 @@ export default async function FlowerPage(props: PageProps<"/flowers/[slug]">) {
 
       <section className="mt-32 grid gap-16 border-t border-ivory/10 pt-16 md:grid-cols-2 md:gap-20">
         <div>
-          <h2 className="mb-6 text-xs tracking-[0.3em] text-gold-soft uppercase">Утга бэлгэдэл</h2>
-          <p className="font-display text-3xl leading-snug font-light text-ivory/90 sm:text-4xl">{flower.meaning}</p>
+          <h2 className="mb-6 text-xs tracking-[0.16em] text-gold-soft uppercase">Утга бэлгэдэл</h2>
+          <p className="font-display text-3xl leading-snug font-extralight text-ivory/90 sm:text-4xl">{flower.meaning}</p>
         </div>
         <div>
-          <h2 className="mb-6 text-xs tracking-[0.3em] text-gold-soft uppercase">Хэзээ бэлэглэх вэ</h2>
+          <h2 className="mb-6 text-xs tracking-[0.16em] text-gold-soft uppercase">Хэзээ бэлэглэх вэ</h2>
           <ul className="flex flex-wrap gap-2.5">
             {flower.occasions.map((o) => (
               <li key={o}>
                 <Link
                   href={`/catalog?occasion=${slugify(o)}`}
-                  className="inline-block border border-gold-soft/30 px-4 py-2 text-sm text-ivory/80 transition-colors duration-300 hover:border-blush-300 hover:text-blush-100"
+                  className="inline-block rounded-full border border-ivory/15 px-4 py-2 text-sm text-ivory/80 transition-colors duration-300 hover:border-ivory/50 hover:text-ivory"
                 >
                   {capitalize(o)}
                 </Link>
@@ -182,7 +183,7 @@ function Care({ flower }: { flower: Flower }) {
   const [min, max] = vaseLifeDays;
   return (
     <section className="mt-28 border-t border-ivory/10 pt-16">
-      <h2 className="mb-10 text-xs tracking-[0.3em] text-gold-soft uppercase">Арчилгаа</h2>
+      <h2 className="mb-10 text-xs tracking-[0.16em] text-gold-soft uppercase">Арчилгаа</h2>
       <div className="grid gap-12 lg:grid-cols-[1fr_1.4fr] lg:gap-20">
         <dl className="grid grid-cols-2 gap-4">
           <Stat icon="water" term="Ус солих" value={waterChangeDays === 1 ? "Өдөр бүр" : `${waterChangeDays} хоног тутам`} />
@@ -219,7 +220,7 @@ function PhotoCredits({ images }: { images: CoverImage[] }) {
   if (credited.length === 0) return null;
   return (
     <footer className="mt-28 border-t border-ivory/10 pt-8">
-      <h2 className="mb-4 text-[0.65rem] tracking-[0.3em] text-ivory/40 uppercase">Зургийн эх сурвалж</h2>
+      <h2 className="mb-4 text-[0.65rem] tracking-[0.16em] text-ivory/40 uppercase">Зургийн эх сурвалж</h2>
       <ul className="flex flex-wrap gap-x-8 gap-y-2">
         {credited.map((img) => (
           <li key={img.src}>

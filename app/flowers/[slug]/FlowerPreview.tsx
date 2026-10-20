@@ -80,7 +80,7 @@ export function FlowerPreview({ spec, name }: { spec: FlowerSpec; name: string }
             </SceneBoundary>
           </div>
         )}
-        <p className="pointer-events-none absolute top-4 left-4 text-[0.62rem] tracking-[0.3em] text-ivory/60 uppercase">
+        <p className="pointer-events-none absolute top-4 left-4 text-[0.62rem] tracking-[0.16em] text-ivory/60 uppercase">
           3D
         </p>
       </div>

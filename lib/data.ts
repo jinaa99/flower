@@ -161,6 +161,10 @@ export type JourneyFlower = {
   story: readonly StoryBeat[];
   spec: FlowerSpec;
   cover: CoverImage;
+  /** Бүтэн кадрын зураг + depth map (2.5D) */
+  hero: CoverImage & { depth: string | null };
+  detail: CoverImage | null;
+  tone: "dark" | "light";
 };
 
 /** Нүүрний 3D аялал: каталогийн мэдээлэл + 3D spec + dissolve-ийн зураг */
@@ -169,7 +173,17 @@ export async function getJourney(): Promise<JourneyFlower[]> {
   return journeyStops.map((stop) => {
     const flower = flowers.find((f) => f.slug === stop.slug)!;
     const cover = getCoverImage(flower)!;
-    return { flower, story: stop.story, spec: { ...stop.spec, image: cover.src }, cover };
+    const { photo } = stop;
+    const hero = flower.images[photo.hero] ?? cover;
+    return {
+      flower,
+      story: stop.story,
+      spec: { ...stop.spec, image: cover.src },
+      cover,
+      hero: { ...hero, depth: flower.images[photo.hero] ? getDepthMap(flower.slug, photo.hero) : null },
+      detail: photo.detail !== undefined ? (flower.images[photo.detail] ?? null) : null,
+      tone: photo.tone,
+    };
   });
 }
 

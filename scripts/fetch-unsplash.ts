@@ -58,6 +58,12 @@ const EXCLUDE = new Set([
   "K3x_AkLVTAo", // peony: гвоздик шиг — цээнэ биш
   "sycOtFg3SBc", // spray-rose: холимог том сарнай
   "UMH92TvHEz0", // spray-rose: ганц ишт энгийн сарнай
+  "KbLUTDaNDwo", // lily: ботаникийн зураг (Europeana), улаан сараана
+  "c-vOWjiy2Cg", // lily: ботаникийн зураг (Europeana), гэрэл зураг биш
+  "albwSHfRMLc", // lavender: зөгийтэй salvia, лаванда биш
+  "Z4bAHXZXVzo", // lisianthus: гвоздиктой холимог баглаа
+  "8vE76KFa76E", // lisianthus: гвоздиктой ваар
+  "s1I0XkgG194", // freesia: alstroemeria шиг — фрезия биш
 ]);
 
 type Photo = {
