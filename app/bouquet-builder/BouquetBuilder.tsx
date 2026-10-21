@@ -112,6 +112,10 @@ export function BouquetBuilder({ flowers, initialSlug }: { flowers: BuilderFlowe
             </p>
           )}
         </div>
+        {/* Preview нь бодит бүтээгдэхүүний зургаас — юу авахаа шударгаар харуулна */}
+        <p className="mx-auto mt-3 max-w-sm text-center text-[0.75rem] leading-relaxed text-ivory/45">
+          Цэцэг бүр манай бодит зургаас. Цэцэгчин таны сонгосон иш, өнгө, боодлоор яг ийм баглааг гараар бүтээнэ.
+        </p>
         <div className="mt-6 hidden lg:block">{summary}</div>
       </aside>
 

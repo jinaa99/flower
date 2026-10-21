@@ -1,64 +1,94 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { DepthPhoto } from "@/components/ui/DepthPhoto";
+import { BloomStage, createMotion, type StageChapter } from "@/components/ui/BloomStage";
 import { FlowerPhoto } from "@/components/ui/FlowerPhoto";
 import { PhotoCredit } from "@/components/ui/PhotoCredit";
 import { ProductCard } from "@/components/ui/ProductCard";
 import type { StoryBeat } from "@/data/journey";
 import type { JourneyFlower } from "@/lib/data";
 import { smoothScroll } from "@/lib/scrollMotion";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 import { cn } from "@/lib/utils";
 import { HomeStatic } from "./HomeStatic";
 
 gsap.registerPlugin(ScrollTrigger);
 
-/** Нэг цэцгийн хэсэгт ногдох scroll-ийн урт */
-const STAGE_VH = 280;
-/** Дараагийн цэцэг рүү шилжих (дугуй нээлт) хугацаа — хэсгийн төгсгөлд */
-const T = 0.16;
-/** Хэсэг доторх үе: гарчгууд [0, BEATS_END), карт [CARD_START, CARD_END) */
-const BEATS_END = 0.52;
-const CARD_START = 0.56;
-const CARD_END = 0.8;
+/** Нэг цэцгийн бүлэгт ногдох scroll-ийн урт */
+const STAGE_VH = 300;
+/** Дараагийн цэцэг рүү шилжих (dive + дэлбээлэлт) хугацаа — бүлгийн төгсгөлд */
+const T = 0.22;
+/** Бүлэг доторх үе: дэлбээлэлт [0, BLOOM_END), гарчгууд [0, BEATS_END), карт [CARD_START, CARD_END) */
+const BLOOM_END = 0.3;
+const BEATS_END = 0.5;
+const CARD_START = 0.54;
+const CARD_END = 0.74;
 const FADE = 0.05;
 
 type Props = { stops: JourneyFlower[] };
 
 /**
- * Нүүр: бодит гэрэл зургийн аялал (motion-reduce болон JS-гүй үед HomeStatic — CSS-ээр).
+ * Нүүр: бодит гэрэл зургийн «амьд» аялал (BloomStage — нэг WebGL canvas). Reduced motion эсвэл
+ * JS-гүй үед HomeStatic (CSS-ээр), WebGL байхгүй/алдаа гарвал JS-ээр HomeStatic руу шилжинэ.
  */
 export function HomeHero({ stops }: Props) {
+  const [failed, setFailed] = useState(false);
+  const onFail = useCallback(() => setFailed(true), []);
   return (
     <>
-      <PhotoJourney stops={stops} />
-      <HomeStatic stops={stops} forced={false} className="hidden motion-reduce:block" />
+      {!failed && <PhotoJourney stops={stops} onFail={onFail} />}
+      <HomeStatic stops={stops} forced={failed} className={failed ? undefined : "hidden motion-reduce:block"} />
     </>
   );
 }
 
 /**
- * Цэцэг бүр нэг «бүлэг»: баруун талд 2.5D (depth parallax) бодит зураг — өөрийн өнгөний дэвсгэрт
- * зөөлөн уусна, дээр нь жижиг дэлгэрэнгүй зураг (сэтгүүлийн хуудас мэт давхарга), зүүн талд
- * гарчгууд, төгсгөлд нь бүтээгдэхүүний карт. Дараагийн цэцэг цэцгийн төвөөс дугуйгаар «дэлгэрч»
- * нээгдэнэ. Бүх зүйл нэг scrub timeline-д — буцаж гүйлгэхэд урвуу явна.
+ * Цэцэг бүр нэг бүлэг: бодит зураг цэцгийн төвөөс дэлбээлж нээгдэнэ, ойрын дэлбээ салхинд найгана,
+ * дэлбээ хөвнө, камер гүнийн дагуу эргэлдэнэ. Бүлгийн төгсгөлд камер цэцгийн гол руу нэвтэрч,
+ * дараагийн цэцэг дээр нь дэлбээлнэ. Гарчиг үг үгээрээ гарна. Бүгд нэг scrub timeline — урвуу явна.
  */
-function PhotoJourney({ stops }: Props) {
+function PhotoJourney({ stops, onFail }: Props & { onFail: () => void }) {
   const section = useRef<HTMLElement>(null);
   const steps = useRef<HTMLOListElement>(null);
+  const reduced = useReducedMotion();
   const [stage, setStage] = useState(0);
+  const [active, setActive] = useState(true);
   const n = stops.length;
   const total = n - T;
-  // Бүлэг бүрийн 2.5D камер (−1..1) — scroll timeline tween хийж, DepthPhoto кадр бүр уншина
-  const drives = useMemo(() => stops.map(() => ({ x: 0, y: 0 })), [stops]);
+
+  const chapters = useMemo<StageChapter[]>(
+    () =>
+      stops.map((s) => ({
+        src: s.hero.src,
+        depth: s.hero.depth ?? "",
+        width: s.hero.width,
+        height: s.hero.height,
+        bg: s.tone === "light" ? (s.hero.color ?? "#f3e6e0") : "#0b0608",
+        focus: s.focus,
+      })),
+    [stops],
+  );
+  // Бүлэг бүрийн хөдөлгөөний төлөв — GSAP шууд tween хийж, BloomStage кадр бүр уншина
+  const motion = useMemo(() => stops.map((_, i) => createMotion(i === 0)), [stops]);
+  const hasDepth = stops.every((s) => s.hero.depth);
+
+  useEffect(() => {
+    if (!hasDepth) onFail();
+  }, [hasDepth, onFail]);
 
   useEffect(() => {
     const el = section.current;
     if (!el) return;
 
+    const visibility = ScrollTrigger.create({
+      trigger: el,
+      start: "top bottom",
+      end: "bottom top",
+      onToggle: (self) => setActive(self.isActive),
+    });
     // Аялал дэлгэц дүүргэж байх үед header тунгалаг (Header: in-data-immersive)
     const immersive = ScrollTrigger.create({
       trigger: el,
@@ -68,133 +98,115 @@ function PhotoJourney({ stops }: Props) {
     });
 
     const mm = gsap.matchMedia();
-    mm.add(
-      { motion: "(prefers-reduced-motion: no-preference)", portrait: "(orientation: portrait)" },
-      (ctx) => {
-        if (!ctx.conditions?.motion) return;
-        const q = gsap.utils.selector(el);
-        const origin = ctx.conditions.portrait ? "50% 34%" : "68% 50%";
-
-        const tl = gsap.timeline({
-          defaults: { ease: "none" },
-          scrollTrigger: {
-            trigger: el,
-            start: "top top",
-            end: "bottom bottom",
-            scrub: 0.6,
-            onUpdate: (self) => {
-              const s = Math.min(Math.floor(self.progress * total + T * 0.5), n - 1);
-              markStep(steps.current, s);
-              setStage((prev) => (prev === s ? prev : s));
-            },
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
+      const q = gsap.utils.selector(el);
+      const tl = gsap.timeline({
+        defaults: { ease: "none" },
+        scrollTrigger: {
+          trigger: el,
+          start: "top top",
+          end: "bottom bottom",
+          scrub: 0.7,
+          onUpdate: (self) => {
+            const s = Math.min(Math.floor(self.progress * total + T * 0.5), n - 1);
+            markStep(steps.current, s);
+            setStage((prev) => (prev === s ? prev : s));
           },
-        });
-        tl.to(q("[data-scroll-hint]"), { autoAlpha: 0, y: 12, duration: 0.03 }, 0);
+        },
+      });
+      // Олдохгүй элемент (жишээ нь дэлгэрэнгүй зураггүй бүлэг) дээр tween үүсгэхгүй
+      const at = (selector: string) => {
+        const found = q(selector);
+        return found.length ? found : null;
+      };
+      tl.to(q("[data-scroll-hint]"), { autoAlpha: 0, y: 12, duration: 0.03 }, 0);
 
-        for (let i = 0; i < n; i++) {
-          // Хугацаа аяллын уртаас хэтрэхгүй — хэтэрвэл scrub-ийн progress бүхэлдээ сунана
-          const start = i === 0 ? 0 : i - T;
-          const end = Math.min(i + 1, total);
-          const last = i === n - 1;
-          const photo = q(`[data-photo="${i}"]`);
+      for (let i = 0; i < n; i++) {
+        const m = motion[i];
+        const start = i === 0 ? 0 : i - T;
+        const end = Math.min(i + 1, total);
+        const last = i === n - 1;
 
-          // ── Зураг: орж ирэх → амьсгалах → «нэвтэрч» гарах ──
-          if (i > 0) {
-            tl.fromTo(
-              photo,
-              { scale: 1.3, xPercent: 7, filter: "blur(10px) brightness(1.15)" },
-              { scale: 1.1, xPercent: 0, filter: "blur(0px) brightness(1)", duration: T, ease: "power2.out" },
-              i - T,
-            );
-          }
-          const breatheEnd = last ? end : i + 1 - T;
-          tl.fromTo(photo, { scale: 1.1 }, { scale: 1, duration: breatheEnd - i, immediateRender: i === 0 }, i);
-          if (!last) {
-            // filter-ийн эхлэлийг заавал заана: «none»-оос tween хийвэл brightness 0-ээс эхэлж зураг харлана
-            tl.fromTo(
-              photo,
-              { scale: 1, filter: "blur(0px) brightness(1)" },
-              { scale: 1.24, filter: "blur(8px) brightness(0.55)", duration: T, ease: "power2.in", immediateRender: false },
-              i + 1 - T,
-            );
-          }
+        // ── Цэцэг: дэлбээлэх → камер эргэлдэх → гол руу нэвтрэх (эхнийх нь ачаалахад дэлбээлнэ) ──
+        if (i > 0) {
+          tl.set(m, { visible: 1 }, i - T);
+          tl.fromTo(m, { bloom: 0 }, { bloom: 1, duration: T + BLOOM_END, ease: "power1.out" }, i - T);
+          // Дэлбээ ихэнх хэсгийг бүрхсэний дараа дэвсгэр бүтэн болно — доорх бүлэг алга болно
+          tl.fromTo(m, { bg: 0 }, { bg: 1, duration: T * 0.5 }, i - T * 0.5);
+          tl.set(motion[i - 1], { visible: 0 }, i + 0.01);
+        }
+        tl.fromTo(m, { panX: -0.85, panY: 0.3 }, { panX: 0.85, panY: -0.3, duration: end - start }, start);
+        if (!last) {
+          tl.fromTo(m, { dive: 0 }, { dive: 1, duration: T + 0.04, ease: "power2.in" }, i + 1 - T - 0.04);
+          tl.fromTo(m, { petals: 0.45 }, { petals: 1, duration: T, immediateRender: false }, i + 1 - T - 0.04);
+        }
 
-          // ── 2.5D камер: scroll-оор гүнийн дагуу зүүнээс баруун тийш эргэлдэнэ ──
-          tl.fromTo(drives[i], { x: -0.9, y: 0.35 }, { x: 0.9, y: -0.35, duration: end - start }, start);
+        // ── Текстийн давхарга: бүлэгтэйгээ хамт ──
+        const layer = q(`[data-layer="${i}"]`);
+        if (i > 0) tl.fromTo(layer, { autoAlpha: 0 }, { autoAlpha: 1, duration: T * 0.4 }, i - T * 0.4);
+        // Дараагийн цэцэг гарч ирэхээс өмнө — өмнөх бүлгийн зураг/текст шинэ цэцэг дээр үлдэхгүй
+        if (!last) tl.to(layer, { autoAlpha: 0, duration: T * 0.35 }, i + 1 - T - 0.04);
 
-          // ── Давхаргын гүн: арын том дугаар ба жижиг зураг эсрэг чиглэлд, өөр хурдаар ──
-          tl.fromTo(q(`[data-num="${i}"]`), { yPercent: 35 }, { yPercent: -35, duration: end - start }, start);
-          const detail = q(`[data-detail="${i}"]`);
+        const num = at(`[data-num="${i}"]`);
+        if (num) tl.fromTo(num, { yPercent: 35 }, { yPercent: -35, duration: end - start }, start);
+        const detail = at(`[data-detail="${i}"]`);
+        if (detail) {
           tl.fromTo(detail, { yPercent: 30, rotate: -5 }, { yPercent: -30, rotate: 3, duration: end - start }, start);
-          tl.fromTo(
-            detail,
-            { clipPath: "inset(100% 0% 0% 0%)" },
-            { clipPath: "inset(0% 0% 0% 0%)", duration: 0.12, ease: "power3.out" },
-            i + 0.04,
-          );
+          tl.fromTo(detail, { clipPath: "inset(100% 0% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 0.12, ease: "power3.out" }, i + 0.06);
+        }
 
-          // Дараагийн бүлэг: цэцгийн төвөөс дугуйгаар дэлгэрнэ
-          if (i > 0) {
-            tl.fromTo(
-              q(`[data-layer="${i}"]`),
-              { clipPath: `circle(0% at ${origin})` },
-              { clipPath: `circle(150% at ${origin})`, duration: T, ease: "power2.inOut" },
-              i - T,
-            );
-            // Эхэндээ жижиг дугуй «цэг» мэт харагдахгүй — нээлтийн эхний хэсэгт тодорно
-            tl.fromTo(q(`[data-layer="${i}"]`), { opacity: 0 }, { opacity: 1, duration: T * 0.4 }, i - T);
+        // ── Гарчиг: үг бүр мөрийн доороос маскаар гарч, дээшээ алга болно ──
+        const beats = q(`[data-beat][data-stage="${i}"]`);
+        const len = BEATS_END / beats.length;
+        beats.forEach((beat, j) => {
+          const words = beat.querySelectorAll("[data-word]");
+          const rest = beat.querySelectorAll("[data-fade]");
+          const inAt = j === 0 ? i - FADE : i + j * len;
+          const outAt = i + (j + 1) * len - FADE * 1.4;
+          if (i > 0 || j > 0) {
+            tl.set(beat, { autoAlpha: 1 }, inAt);
+            tl.fromTo(words, { yPercent: 115 }, { yPercent: 0, duration: FADE * 1.6, stagger: 0.008, ease: "power3.out" }, inAt);
+            if (rest.length) tl.fromTo(rest, { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: FADE, stagger: 0.012 }, inAt + 0.025);
           }
+          tl.fromTo(words, { yPercent: 0 }, { yPercent: -115, duration: FADE * 1.2, stagger: 0.006, ease: "power2.in", immediateRender: false }, outAt);
+          if (rest.length) tl.fromTo(rest, { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -14, duration: FADE, immediateRender: false }, outAt);
+          tl.set(beat, { autoAlpha: 0 }, outAt + FADE * 1.5);
+        });
 
-          // ── Гарчиг: үг бүр мөрийн доороос маскаар ээлжлэн гарч, дээшээ алга болно ──
-          const beats = q(`[data-beat][data-stage="${i}"]`);
-          const len = BEATS_END / beats.length;
-          beats.forEach((beat, j) => {
-            const words = beat.querySelectorAll("[data-word]");
-            const rest = beat.querySelectorAll("[data-fade]");
-            const inAt = j === 0 ? i - FADE : i + j * len;
-            const outAt = i + (j + 1) * len - FADE * 1.4;
-            if (i > 0 || j > 0) {
-              tl.set(beat, { autoAlpha: 1 }, inAt);
-              tl.fromTo(words, { yPercent: 115 }, { yPercent: 0, duration: FADE * 1.6, stagger: 0.008, ease: "power3.out" }, inAt);
-              tl.fromTo(rest, { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: FADE, stagger: 0.012 }, inAt + 0.025);
-            }
-            tl.fromTo(words, { yPercent: 0 }, { yPercent: -115, duration: FADE * 1.2, stagger: 0.006, ease: "power2.in", immediateRender: false }, outAt);
-            tl.fromTo(rest, { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -14, duration: FADE, immediateRender: false }, outAt);
-            tl.set(beat, { autoAlpha: 0 }, outAt + FADE * 1.5);
-          });
+        // ── Бүтээгдэхүүний карт: доороос маскаар ──
+        const card = q(`[data-card][data-stage="${i}"]`);
+        tl.fromTo(
+          card,
+          { autoAlpha: 0, y: 50, clipPath: "inset(0% 0% 100% 0%)" },
+          { autoAlpha: 1, y: 0, clipPath: "inset(0% 0% 0% 0%)", duration: 0.07, ease: "power3.out" },
+          i + CARD_START,
+        );
+        if (!last) tl.to(card, { autoAlpha: 0, y: -40, duration: FADE }, i + CARD_END);
+      }
+      tl.set({}, {}, total);
+      markStep(steps.current, 0);
 
-          // ── Бүтээгдэхүүний карт: доороос маскаар ──
-          const card = q(`[data-card][data-stage="${i}"]`);
-          tl.fromTo(
-            card,
-            { autoAlpha: 0, y: 50, clipPath: "inset(0% 0% 100% 0%)" },
-            { autoAlpha: 1, y: 0, clipPath: "inset(0% 0% 0% 0%)", duration: 0.07, ease: "power3.out" },
-            i + CARD_START,
-          );
-          if (!last) tl.to(card, { autoAlpha: 0, y: -40, duration: FADE }, i + CARD_END);
-        }
-
-        // Анх ачаалахад (хуудасны дээд хэсэгт) — гарчиг үг үгээрээ, зураг гэрлээс тодорно. Нэг удаа.
-        if (window.scrollY < 40) {
-          gsap.from(q('[data-stage="0"][data-beat] [data-word]'), { yPercent: 115, duration: 1.3, stagger: 0.07, ease: "power3.out", delay: 0.15 });
-          gsap.from(q('[data-stage="0"][data-beat] [data-fade]'), { autoAlpha: 0, y: 18, duration: 1, stagger: 0.1, delay: 0.6 });
-          gsap.fromTo(
-            q('[data-photo="0"]'),
-            { opacity: 0, filter: "blur(14px) brightness(1.3)" },
-            { opacity: 1, filter: "blur(0px) brightness(1)", duration: 1.8, ease: "power2.out", clearProps: "opacity,filter" },
-          );
-        }
-        tl.set({}, {}, total);
-        markStep(steps.current, 0);
-      },
-    );
+      // Анх (хуудасны дээд хэсэгт): гарчиг үг үгээрээ гарна. Цэцэг нь зураг ачаалагдмагц дэлбээлнэ (onReady).
+      if (window.scrollY < 40) {
+        gsap.from(q('[data-stage="0"][data-beat] [data-word]'), { yPercent: 115, duration: 1.3, stagger: 0.07, ease: "power3.out", delay: 0.5 });
+        gsap.from(q('[data-stage="0"][data-beat] [data-fade]'), { autoAlpha: 0, y: 18, duration: 1, stagger: 0.1, delay: 0.9 });
+      }
+    });
 
     return () => {
+      visibility.kill();
       immersive.kill();
       document.documentElement.removeAttribute("data-immersive");
       mm.revert();
     };
-  }, [n, total, drives]);
+  }, [n, total, motion]);
+
+  // Эхний цэцэг: хуудасны дээд хэсэгт бол удаан дэлбээлнэ, доор ачаалсан бол шууд нээлттэй
+  const bloomIn = useCallback(() => {
+    const m = motion[0];
+    if (window.scrollY > 40 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) gsap.set(m, { bloom: 1 });
+    else gsap.fromTo(m, { bloom: 0.04 }, { bloom: 1, duration: 3.2, ease: "power2.inOut" });
+  }, [motion]);
 
   // Цайвар бүлэг дээр header бараан бэхээр (globals.css: data-hero-tone)
   const tone = stops[stage]?.tone ?? "dark";
@@ -205,7 +217,7 @@ function PhotoJourney({ stops }: Props) {
     };
   }, [tone]);
 
-  /** Аяллын P цэг рүү зөөлөн гүйлгэнэ (шатны индикатор) */
+  /** Аяллын P цэг рүү зөөлөн гүйлгэнэ (бүлгийн индикатор) */
   const jumpTo = useCallback(
     (P: number) => {
       const el = section.current;
@@ -225,16 +237,19 @@ function PhotoJourney({ stops }: Props) {
         style={{ "--journey-height": `${n * STAGE_VH}vh` } as CSSProperties}
         aria-label="Цэцгийн аялал"
       >
-        <div className="sticky top-0 h-dvh overflow-hidden">
+        <div className="sticky top-0 h-dvh overflow-hidden bg-[#0b0608]">
+          {/* Зураг ачаалагдмагц эхний цэцэг нахиагаас дэлбээлнэ (гарчиг түүнээс өмнө харагдана) */}
+          {!reduced && <BloomStage chapters={chapters} motion={motion} current={stage} active={active} onReady={bloomIn} onFail={onFail} />}
+
           {stops.map((stop, i) => (
-            <Chapter key={stop.flower.slug} stop={stop} index={i} count={n} active={Math.abs(stage - i) <= 1} drive={drives[i]} />
+            <Chapter key={stop.flower.slug} stop={stop} index={i} count={n} />
           ))}
 
           {/* Доод голд намуухан «гүйлгэ» заалт */}
           <div
             data-scroll-hint
             aria-hidden
-            className="pointer-events-none absolute bottom-8 left-1/2 z-20 hidden -translate-x-1/2 flex-col items-center gap-3 text-[0.68rem] tracking-[0.12em] text-ivory/50 sm:flex"
+            className="pointer-events-none absolute bottom-8 left-1/2 z-20 hidden -translate-x-1/2 flex-col items-center gap-3 text-[0.68rem] tracking-[0.12em] text-ivory/50 landscape:sm:flex"
           >
             Гүйлгэх
             <span className="relative h-12 w-px overflow-hidden bg-ivory/15">
@@ -242,25 +257,25 @@ function PhotoJourney({ stops }: Props) {
             </span>
           </div>
 
-          {/* Бүлгийн индикатор: 01 Цээнэ 02 03 04 — дарвал тухайн цэцэг рүү */}
+          {/* Бүлгийн индикатор — дарвал тухайн цэцэг рүү */}
           <nav
             aria-label="Цэцгийн аялал"
             className={cn(
-              "absolute right-4 bottom-8 z-20 transition-colors duration-700 sm:right-8 lg:right-10",
+              "absolute right-4 bottom-5 z-20 transition-colors duration-700 sm:right-8 sm:bottom-8 lg:right-10",
               stops[stage]?.tone === "light" ? "text-plum-950" : "text-ivory",
             )}
           >
-            <ol ref={steps} className="flex gap-5 text-[0.72rem] tracking-[0.08em] tabular-nums">
+            <ol ref={steps} className="flex gap-4 text-[0.7rem] tracking-[0.08em] tabular-nums sm:gap-5">
               {stops.map(({ flower }, i) => (
                 <li key={flower.slug}>
                   <button
                     type="button"
                     onClick={() => jumpTo(i === 0 ? 0 : i + 0.02)}
                     aria-label={`${pad(i + 1)} — ${flower.nameMn}`}
-                    className="group relative flex items-baseline gap-2 pb-2.5 opacity-40 transition-opacity duration-500 hover:opacity-80 data-active:opacity-100"
+                    className="group relative flex items-baseline gap-2 pb-2 opacity-40 transition-opacity duration-500 hover:opacity-80 data-active:opacity-100"
                   >
                     {pad(i + 1)}
-                    <span aria-hidden className="hidden font-display text-[0.95rem] italic group-data-active:inline">
+                    <span aria-hidden className="hidden font-display text-[0.92rem] italic group-data-active:inline">
                       {flower.nameMn}
                     </span>
                     <span
@@ -279,68 +294,24 @@ function PhotoJourney({ stops }: Props) {
 }
 
 /**
- * Нэг бүлэг (бүтэн дэлгэцийн давхарга): дэвсгэр нь зургийн өөрийн өнгө — зураг ирмэгээрээ уусч
- * «зүйдэл» харагдахгүй. Хэвтээ дэлгэцэнд зураг баруун 64%, босоо дэлгэцэнд дээд 64%.
+ * Нэг бүлгийн текстийн давхарга (зураг, дэвсгэрийг BloomStage зурна): гарчгууд, бүтээгдэхүүний карт,
+ * арын том дугаар, жижиг дэлгэрэнгүй зураг, attribution. Босоо дэлгэцэнд текст доод 40%-д.
  */
-function Chapter({
-  stop,
-  index,
-  count,
-  active,
-  drive,
-}: {
-  stop: JourneyFlower;
-  index: number;
-  count: number;
-  active: boolean;
-  drive: { x: number; y: number };
-}) {
+function Chapter({ stop, index, count }: { stop: JourneyFlower; index: number; count: number }) {
   const { flower, story, hero, detail, tone, cover } = stop;
   const light = tone === "light";
   return (
     <div
       data-layer={index}
-      data-tone={tone}
-      className={cn("absolute inset-0", light ? "text-plum-950" : "text-ivory")}
-      style={{
-        zIndex: index + 1,
-        // Бараан бүлэг: бараг хар — зургийн хар дэвсгэр рүү «зүйдэлгүй» уусна. Цайвар: зургийн өнгө.
-        backgroundColor: light ? hero.color : "#0b0608",
-        // Server HTML-д ч дараагийн бүлгүүд хаалттай (JS ачаалахаас өмнө анивчихгүй)
-        clipPath: index > 0 ? "circle(0% at 68% 50%)" : undefined,
-      }}
+      className={cn("absolute inset-0", light ? "text-plum-950" : "text-ivory", index > 0 && "invisible opacity-0")}
+      style={{ zIndex: index + 2 }}
     >
-      <div
-        className="absolute portrait:inset-x-0 portrait:top-0 portrait:h-[64%] landscape:inset-y-0 landscape:right-0 landscape:w-[64%] portrait:[mask-image:linear-gradient(to_bottom,black_70%,transparent)] landscape:[mask-image:linear-gradient(to_right,transparent,black_36%)]"
-      >
-        <div data-photo={index} className="absolute inset-0 will-change-transform">
-          {hero.depth ? (
-            <DepthPhoto
-              src={hero.src}
-              depth={hero.depth}
-              alt={hero.alt}
-              width={hero.width}
-              height={hero.height}
-              color={hero.color}
-              sizes="(orientation: portrait) 100vw, 64vw"
-              priority={index === 0}
-              strength={0.04}
-              paused={!active}
-              drive={drive}
-              className="size-full"
-            />
-          ) : (
-            <FlowerPhoto src={hero.src} alt={hero.alt} fill sizes="(orientation: portrait) 100vw, 64vw" priority={index === 0} className="object-cover" />
-          )}
-        </div>
-      </div>
-
       {/* Арын том serif дугаар — scroll-оор эсрэг чиглэлд хөдөлж гүн өгнө */}
       <span
         data-num={index}
         aria-hidden
         className={cn(
-          "pointer-events-none absolute -bottom-[4vw] -left-[1vw] font-display text-[42vw] leading-none font-extralight select-none landscape:text-[24vw]",
+          "pointer-events-none absolute -bottom-[4vw] -left-[1vw] font-display text-[40vw] leading-none font-extralight select-none landscape:text-[24vw]",
           light ? "text-plum-950/[0.07]" : "text-ivory/[0.045]",
         )}
       >
@@ -371,11 +342,9 @@ function Chapter({
         )}
       />
 
-      <div className="relative mx-auto grid h-full w-full max-w-7xl px-4 pt-(--header-height) sm:px-8 portrait:items-end portrait:pb-24 landscape:items-center">
+      <div className="relative mx-auto grid h-full w-full max-w-7xl px-5 pt-(--header-height) sm:px-8 portrait:items-end portrait:pb-20 landscape:items-center">
         {story.map((beat, j) => (
-          <Fragment key={j}>
-            <Beat stage={index} beat={beat} first={index === 0 && j === 0} light={light} />
-          </Fragment>
+          <Beat key={j} stage={index} beat={beat} first={index === 0 && j === 0} light={light} />
         ))}
         <ProductCard
           flower={flower}
@@ -402,8 +371,9 @@ function markStep(list: HTMLOListElement | null, stage: number) {
   });
 }
 
+// Босоо (утас): 3 мөрөөс хэтрэхгүй хэмжээ; хэвтээ: том редакцын гарчиг
 const titleClass =
-  "font-display text-[2.75rem] leading-[1.02] font-extralight tracking-[-0.01em] text-balance sm:text-7xl lg:text-[5.4rem]";
+  "font-display text-[2.35rem] leading-[1.04] font-extralight tracking-[-0.01em] text-balance sm:text-6xl landscape:lg:text-[5.2rem]";
 
 function Beat({ stage, beat, first, light }: { stage: number; beat: StoryBeat; first: boolean; light: boolean }) {
   const [before, em, after] = beat.title;
@@ -412,9 +382,9 @@ function Beat({ stage, beat, first, light }: { stage: number; beat: StoryBeat; f
     <div
       data-beat
       data-stage={stage}
-      className={cn("max-w-2xl [grid-area:1/1] landscape:max-w-[34rem]", !first && "invisible")}
+      className={cn("max-w-xl [grid-area:1/1] landscape:max-w-[33rem]", !first && "invisible")}
     >
-      <p data-fade className={cn("eyebrow mb-8", light && "text-gold-deep! before:bg-gold-deep/50!")}>
+      <p data-fade className={cn("eyebrow mb-5 sm:mb-8", light && "text-gold-deep! before:bg-gold-deep/50!")}>
         {beat.eyebrow}
       </p>
       <Heading className={titleClass}>
@@ -424,11 +394,17 @@ function Beat({ stage, beat, first, light }: { stage: number; beat: StoryBeat; f
         </em>
         <Words text={after} />
       </Heading>
-      <p data-fade className={cn("mt-7 max-w-sm text-[1.05rem] leading-relaxed", light ? "text-plum-950/70" : "text-ivory/70")}>
+      <p
+        data-fade
+        className={cn(
+          "mt-5 max-w-sm text-[0.95rem] leading-relaxed sm:mt-7 sm:text-[1.05rem]",
+          light ? "text-plum-950/70" : "text-ivory/70",
+        )}
+      >
         {beat.body}
       </p>
       {first && (
-        <div data-fade className="mt-11">
+        <div data-fade className="mt-8 sm:mt-11">
           <Link href="/catalog" className="btn-primary">
             Цуглуулга үзэх <span aria-hidden>→</span>
           </Link>

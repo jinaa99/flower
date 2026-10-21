@@ -101,7 +101,9 @@ export function DepthPhoto({
   useEffect(() => {
     const el = wrap.current;
     const cv = canvas.current;
-    if (!el || !cv || reduced) return;
+    // Утсанд нэмэлт WebGL context үүсгэхгүй (iOS-ийн санах ойн хязгаар) — энгийн зураг хангалттай
+    const touch = window.matchMedia("(pointer: coarse)").matches;
+    if (!el || !cv || reduced || touch) return;
     const gl = cv.getContext("webgl", { antialias: false, alpha: false, premultipliedAlpha: false });
     if (!gl) return;
 

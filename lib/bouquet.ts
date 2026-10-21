@@ -35,6 +35,8 @@ export type BuilderFlower = {
   pairsWithSlugs: FlowerSlug[];
   popularity: number;
   thumb: { src: string; color?: string } | null;
+  /** Бодит гэрэл зургууд — preview-д цэцгийн толгойг эндээс тайрна (data/flowerHeads.ts) */
+  photos: { src: string; width: number; height: number }[];
 };
 
 /**
@@ -59,6 +61,7 @@ export function toBuilderFlower(flower: Flower, thumb: BuilderFlower["thumb"]): 
     pairsWithSlugs: flower.pairsWithSlugs,
     popularity: flower.popularity,
     thumb,
+    photos: flower.images.map(({ src, width, height }) => ({ src, width, height })),
   };
 }
 

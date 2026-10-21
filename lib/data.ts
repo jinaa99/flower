@@ -165,6 +165,7 @@ export type JourneyFlower = {
   hero: CoverImage & { depth: string | null };
   detail: CoverImage | null;
   tone: "dark" | "light";
+  focus: readonly [number, number];
 };
 
 /** Нүүрний 3D аялал: каталогийн мэдээлэл + 3D spec + dissolve-ийн зураг */
@@ -183,6 +184,7 @@ export async function getJourney(): Promise<JourneyFlower[]> {
       hero: { ...hero, depth: flower.images[photo.hero] ? getDepthMap(flower.slug, photo.hero) : null },
       detail: photo.detail !== undefined ? (flower.images[photo.detail] ?? null) : null,
       tone: photo.tone,
+      focus: photo.focus,
     };
   });
 }

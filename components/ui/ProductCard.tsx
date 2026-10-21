@@ -40,7 +40,7 @@ export function ProductCard({ flower, stage, count, cover, className, ...rest }:
       {...rest}
       className={cn(
         // Зургийн дээрх редакцын тайлбар: бараан, нарийн хүрээ — шилэн биш
-        "relative w-full max-w-md border border-ivory/10 bg-plum-950/85 p-8 backdrop-blur-sm sm:p-10",
+        "relative w-full max-w-md border border-ivory/10 bg-plum-950/85 p-6 backdrop-blur-sm sm:p-10",
         className,
       )}
     >

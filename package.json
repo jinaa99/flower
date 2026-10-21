@@ -14,7 +14,8 @@
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "db:seed:reset": "prisma db seed -- --reset",
-    "images:depth": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/depth-maps.ts"
+    "images:depth": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/depth-maps.ts",
+    "images:heads": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/flower-heads.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.2",

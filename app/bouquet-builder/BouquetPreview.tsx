@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
 import { greenery as greeneryOptions, papers, ribbons, type Greenery } from "@/data/bouquet";
+import { flowerHeads, type FlowerHead } from "@/data/flowerHeads";
 import type { FlowerSlug } from "@/data/flowers";
 import type { BouquetConfig, BuilderFlower } from "@/lib/bouquet";
+import { isUnsplash, unsplashLoader } from "@/lib/unsplash";
 
 /*
  * Баглааны live preview — давхарласан 2D SVG (3D-гүй, хөнгөн):
@@ -45,7 +47,9 @@ const heads: Record<FlowerSlug, { shape: Shape; r: number; center?: string; fine
   gypsophila: { shape: "cluster", r: 20, fine: true },
 };
 
-type Head = { key: string; slug: FlowerSlug; hex: string; r: number; seed: number };
+/** Бодит зурагнаас тайрсан толгой; өнгө нь зурагтай тохирохгүй бол tint (duotone) */
+type Photo = { href: string; width: number; height: number; crop: FlowerHead; tint: string | null };
+type Head = { key: string; slug: FlowerSlug; hex: string; r: number; seed: number; photo: Photo | null };
 type Placed = Head & { x: number; y: number };
 
 export function BouquetPreview({ config, flowers }: { config: BouquetConfig; flowers: ReadonlyMap<string, BuilderFlower> }) {
@@ -53,10 +57,13 @@ export function BouquetPreview({ config, flowers }: { config: BouquetConfig; flo
   for (const line of config.stems) {
     const flower = flowers.get(line.slug);
     const hex = flower?.colors[line.color]?.hex;
-    if (!hex) continue;
+    if (!flower || !hex) continue;
     for (let k = 0; k < line.count; k++) {
       const key = `${line.slug}:${line.color}:${k}`;
-      list.push({ key, slug: line.slug, hex, r: heads[line.slug].r, seed: hash(key) });
+      const seed = hash(key);
+      const photo = pickPhoto(flower, hex, seed);
+      // Бодит зурган толгой нь бага зэрэг том — нягт, бие биенээ давхарласан бөмбөгөр
+      list.push({ key, slug: line.slug, hex, r: heads[line.slug].r * (photo ? 1.3 : 1), seed, photo });
     }
   }
   const { placed, k, halfW, halfH } = layout(list);
@@ -82,6 +89,27 @@ export function BouquetPreview({ config, flowers }: { config: BouquetConfig; flo
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="h-full w-full" role="img" aria-label="Баглааны урьдчилсан зураг">
+      <defs>
+        {/* Толгойн бөмбөрцөг хэлбэр: ирмэг рүү бараан — зураг хавтгай «наалт» шиг харагдахгүй */}
+        <radialGradient id="head-shade" cx="0.42" cy="0.38" r="0.62">
+          <stop offset="0.6" stopColor={PLUM} stopOpacity="0" />
+          <stop offset="1" stopColor={PLUM} stopOpacity="0.28" />
+        </radialGradient>
+        {/* Зөөлөн ирмэг — толгойнууд хатуу «дугуй наалт» биш, хөршдөө уусна */}
+        <radialGradient id="head-feather">
+          <stop offset="0.72" stopColor={WHITE} />
+          <stop offset="1" stopColor={WHITE} stopOpacity="0" />
+        </radialGradient>
+        {/* Цаасны зөөлөн гэрэл-сүүдэр */}
+        <linearGradient id="paper-light" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor={WHITE} stopOpacity="0.18" />
+          <stop offset="0.6" stopColor={WHITE} stopOpacity="0" />
+          <stop offset="1" stopColor={PLUM} stopOpacity="0.22" />
+        </linearGradient>
+        {[...new Set(list.map((h) => h.photo?.tint).filter((t): t is string => !!t))].map((hex) => (
+          <TintFilter key={hex} hex={hex} />
+        ))}
+      </defs>
       {/* Ар талын цаас — дээд ирмэг нь долгионтой */}
       <path className="bouquet-shape" d={backPaper(wrapW, top)} fill={mix(paper, PLUM, 0.32)} />
       <path className="bouquet-shape" d={backPaper(wrapW - 16, top + 14)} fill={mix(paper, PLUM, 0.16)} />
@@ -120,7 +148,7 @@ export function BouquetPreview({ config, flowers }: { config: BouquetConfig; flo
             className="bouquet-node"
             style={{ transform: `translate(${C.x + h.x}px, ${C.y + h.y}px) scale(${k})` }}
           >
-            <g className="bouquet-pop">{head(h)}</g>
+            <g className="bouquet-pop">{h.photo ? <PhotoHead head={h} photo={h.photo} /> : head(h)}</g>
           </g>
         ))}
 
@@ -140,6 +168,15 @@ export function BouquetPreview({ config, flowers }: { config: BouquetConfig; flo
         d={`M${TIE.x - 6} ${TIE.y + 6} L${C.x + wrapW + 4} ${frontY - 8} L${C.x - wrapW * 0.12} ${frontY + 38} Z`}
         fill={mix(paper, PLUM, 0.08)}
       />
+      {/* Хоёр хавтас дээр зөөлөн гэрэл-сүүдэр — хавтгай өнгө биш, цаас мэт */}
+      <path
+        d={`M${TIE.x + 6} ${TIE.y + 6} L${C.x - wrapW - 4} ${frontY} L${C.x + wrapW * 0.18} ${frontY + 30} Z`}
+        fill="url(#paper-light)"
+      />
+      <path
+        d={`M${TIE.x - 6} ${TIE.y + 6} L${C.x + wrapW + 4} ${frontY - 8} L${C.x - wrapW * 0.12} ${frontY + 38} Z`}
+        fill="url(#paper-light)"
+      />
       <path
         className="bouquet-shape"
         d={`M${TIE.x - 6} ${TIE.y + 6} L${C.x - wrapW * 0.12} ${frontY + 38}`}
@@ -155,6 +192,72 @@ export function BouquetPreview({ config, flowers }: { config: BouquetConfig; flo
   );
 }
 
+/* ───────────── Бодит зурган толгой ───────────── */
+
+/** Сонгосон өнгөнд хамгийн ойр тайралт; ойр нь олон бол иш бүрт ээлжилнэ (байгалийн ялгаа) */
+function pickPhoto(flower: BuilderFlower, hex: string, seed: number): Photo | null {
+  const crops = (flowerHeads[flower.slug] ?? []).filter((c) => flower.photos[c.image]);
+  if (crops.length === 0) return null;
+  const scored = crops.map((crop) => ({ crop, d: colorDistance(crop.color, hex) })).sort((a, b) => a.d - b.d);
+  const close = scored.filter((s) => s.d < Math.max(scored[0].d * 1.25, 60));
+  const { crop, d } = close[Math.floor(seed * close.length) % close.length];
+  const p = flower.photos[crop.image];
+  const href = isUnsplash(p.src) ? unsplashLoader({ src: p.src, width: 800, quality: 75 }) : p.src;
+  // Зураг дахь цэцгийн өнгө сонгосон өнгөнөөс хол бол — тухайн өнгөөр duotone (хэлбэр, бүтэц нь бодит)
+  return { href, width: p.width, height: p.height, crop, tint: d > 95 ? hex : null };
+}
+
+function PhotoHead({ head: h, photo }: { head: Head; photo: Photo }) {
+  const R = h.r;
+  const imgW = R / photo.crop.r;
+  const imgH = (imgW * photo.height) / photo.width;
+  const id = `head-${h.key.replace(/[^a-z0-9]/gi, "-")}`;
+  return (
+    <g transform={`rotate(${(h.seed - 0.5) * 50})`}>
+      <mask id={id}>
+        <circle r={R} fill="url(#head-feather)" />
+      </mask>
+      <image
+        href={photo.href}
+        x={-photo.crop.cx * imgW}
+        y={-photo.crop.cy * imgH}
+        width={imgW}
+        height={imgH}
+        preserveAspectRatio="none"
+        mask={`url(#${id})`}
+        filter={photo.tint ? `url(#tint-${photo.tint.slice(1)})` : undefined}
+      />
+      <circle r={R} fill="url(#head-shade)" />
+    </g>
+  );
+}
+
+/** Gradient map: зургийн гэрэлтэлт → сонгосон өнгөний бараан..цайвар (бодит бүтэц хадгалагдана) */
+function TintFilter({ hex }: { hex: string }) {
+  const [r, g, b] = rgb(hex);
+  const table = (c: number) => [c * 0.18, c * 0.62, c, c + (1 - c) * 0.7].map((v) => v.toFixed(3)).join(" ");
+  return (
+    <filter id={`tint-${hex.slice(1)}`} colorInterpolationFilters="sRGB">
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncR type="table" tableValues={table(r)} />
+        <feFuncG type="table" tableValues={table(g)} />
+        <feFuncB type="table" tableValues={table(b)} />
+      </feComponentTransfer>
+    </filter>
+  );
+}
+
+const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255) as [number, number, number];
+
+/** Хүний нүдний мэдрэмжид ойр (жинтэй RGB) өнгөний зай, 0–~440 */
+function colorDistance(a: string, b: string) {
+  const [r1, g1, b1] = rgb(a).map((v) => v * 255);
+  const [r2, g2, b2] = rgb(b).map((v) => v * 255);
+  const rm = (r1 + r2) / 2;
+  return Math.sqrt((2 + rm / 256) * (r1 - r2) ** 2 + 4 * (g1 - g2) ** 2 + (2 + (255 - rm) / 256) * (b1 - b2) ** 2) / 3;
+}
+
 /* ───────────── Байрлал ───────────── */
 
 function layout(list: Head[]) {
@@ -162,7 +265,7 @@ function layout(list: Head[]) {
   // Том толгой голд, жижиг нь захад; ижил хэмжээтэйд тогтвортой эрэмбэ (key)
   const sorted = [...list].sort((a, b) => b.r - a.r || a.key.localeCompare(b.key));
   const meanR = Math.sqrt(sorted.reduce((s, h) => s + h.r * h.r, 0) / sorted.length);
-  const step = meanR * 1.08;
+  const step = meanR * 0.94;
   const raw = sorted.map((h, i) => {
     const radius = step * Math.sqrt(i + 0.4);
     const theta = i * GOLDEN + 0.6;
